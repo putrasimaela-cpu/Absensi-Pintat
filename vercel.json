@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "aplikasi.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "publik/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/publik/(.*)",
+      "dest": "/publik/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "aplikasi.js"
+    }
+  ]
+}
