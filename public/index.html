@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Pintar - Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen flex justify-center items-center">
+
+    <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[800px] sm:rounded-3xl shadow-2xl flex flex-col justify-between overflow-hidden relative">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-5 rounded-b-3xl shadow-lg">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center font-bold text-xl">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg">Siswa Absensi</h1>
+                    <p class="text-xs text-blue-100">Aplikasi Presensi GPS & QR</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner Area -->
+        <div class="p-5 flex-1 flex flex-col items-center justify-center">
+            <h2 class="text-slate-800 font-bold text-lg mb-1">Arahkan Kamera ke QR Code</h2>
+            <p class="text-slate-500 text-xs mb-6 text-center">Pastikan lokasi GPS Anda aktif</p>
+
+            <div class="w-64 h-64 bg-slate-900 rounded-3xl p-3 shadow-inner flex items-center justify-center relative overflow-hidden border-4 border-slate-200">
+                <i class="fa-solid fa-camera text-slate-600 text-5xl"></i>
+                <div class="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-blue-500"></div>
+                <div class="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-blue-500"></div>
+                <div class="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-blue-500"></div>
+                <div class="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-blue-500"></div>
+            </div>
+
+            <button class="mt-6 bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-blue-700 transition">
+                <i class="fa-solid fa-qrcode mr-2"></i> Pindai Sekarang
+            </button>
+        </div>
+
+        <!-- Navigation Bar -->
+        <div class="bg-white border-t border-slate-200 px-6 py-3 flex justify-around text-center text-xs">
+            <div class="text-blue-600 font-bold">
+                <i class="fa-solid fa-qrcode text-lg block"></i> Absen
+            </div>
+            <div class="text-slate-400">
+                <i class="fa-solid fa-clock-rotate-left text-lg block"></i> Riwayat
+            </div>
+            <div class="text-slate-400">
+                <i class="fa-solid fa-user-gear text-lg block"></i> Akun
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
