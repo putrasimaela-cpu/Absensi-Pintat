@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Absensi</title>
+  <title>Login - Sistem Absensi Multi Sekolah</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #f4f6f8; }
-    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
-    h2 { margin-bottom: 0.5rem; color: #111; }
-    p { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
-    input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; }
-    button { width: 100%; padding: 0.75rem; background: #0066ff; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; }
-    button:disabled { background: #99c2ff; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: #eef2f5; }
+    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; }
+    input { width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 6px; }
+    button { width: 100%; padding: 0.75rem; background: #0066ff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .error { color: red; margin-top: 1rem; font-size: 0.85rem; }
   </style>
 </head>
@@ -20,53 +17,41 @@
 
   <div class="card">
     <h2>Sistem Absensi</h2>
-    <p>Masukkan akun Anda untuk masuk</p>
-
+    <p style="color:#666; font-size:0.85rem; margin-bottom:1.5rem;">Masukan Akun Pengguna</p>
     <form id="loginForm">
       <input type="text" id="username" placeholder="Username" required>
       <input type="password" id="password" placeholder="Password" required>
       <button type="submit" id="submitBtn">Masuk</button>
     </form>
-
     <div id="errorMsg" class="error"></div>
   </div>
 
   <script>
-    const form = document.getElementById('loginForm');
-    const errorMsg = document.getElementById('errorMsg');
-    const submitBtn = document.getElementById('submitBtn');
-
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      errorMsg.textContent = '';
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Memproses...';
+      const err = document.getElementById('errorMsg');
+      err.textContent = '';
 
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+      const u = document.getElementById('username').value;
+      const p = document.getElementById('password').value;
 
       try {
-        // Panggilan relatif langsung ke endpoint Vercel API
-        const response = await fetch('/api/login', {
+        const res = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username: u, password: p })
         });
+        const data = await res.json();
 
-        const data = await response.json();
-
-        if (response.ok) {
-          alert('Login Berhasil!');
-          // Arahkan ke dashboard jika login sukses
+        if (res.ok) {
+          // Simpan sesi user ke HP
+          localStorage.setItem('userSession', JSON.stringify(data.user));
           window.location.href = '/dashboard.html';
         } else {
-          errorMsg.textContent = data.error || 'Login gagal. Periksa kembali akun Anda.';
+          err.textContent = data.error;
         }
-      } catch (err) {
-        errorMsg.textContent = 'Gagal terhubung ke server.';
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Masuk';
+      } catch (e) {
+        err.textContent = 'Gagal terhubung ke server.';
       }
     });
   </script>
