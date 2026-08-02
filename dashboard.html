@@ -16,15 +16,17 @@
     .card.active { display: block; }
     input, select, button { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
     button { background: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-danger { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; width: auto; font-size: 0.8rem; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #f8f9fa; }
     .badge { padding: 3px 8px; border-radius: 4px; background: #e0e0e0; font-size: 0.75rem; font-weight: bold; }
+    .pwd-text { font-family: monospace; background: #fff3cd; padding: 2px 5px; border-radius: 3px; color: #856404; }
   </style>
 </head>
 <body>
 
-  <!-- Header Otomatis Menyesuaikan Nama Sekolah -->
+  <!-- Header -->
   <div class="header">
     <div>
       <h3 id="appTitle">SISTEM ABSENSI</h3>
@@ -33,23 +35,24 @@
     <button onclick="logout()" style="width:auto; background:#ff4d4d; padding:6px 12px;">Keluar</button>
   </div>
 
-  <!-- Menu Navigasi Berdasarkan Role -->
+  <!-- Menu Navigasi Dynamic -->
   <div class="nav-tabs" id="menuTabs">
-    <button class="tab-btn active" onclick="switchTab('scanTab')">📷 Scan QR Guru Piket</button>
+    <button class="tab-btn active" onclick="switchTab('scanTab')">📷 Scan QR</button>
     <button class="tab-btn" onclick="switchTab('rekapTab')">📊 Rekap Absensi</button>
-    <button class="tab-btn role-admin role-operator" onclick="switchTab('siswaTab')">👨‍🎓 Data Siswa</button>
-    <button class="tab-btn role-admin" onclick="switchTab('userTab')">👤 Tata Kelola User</button>
-    <button class="tab-btn role-admin" onclick="switchTab('sekolahTab')">🏫 Data Sekolah</button>
+    <button class="tab-btn" id="btnSiswaTab" onclick="switchTab('siswaTab')">👨‍🎓 Data Siswa</button>
+    <button class="tab-btn" id="btnUserTab" onclick="switchTab('userTab')">👤 Tata Kelola User</button>
+    <button class="tab-btn" id="btnSekolahTab" onclick="switchTab('sekolahTab')">🏫 Data Sekolah</button>
+    <button class="tab-btn" onclick="switchTab('settingTab')">⚙️ Ganti Password</button>
   </div>
 
-  <!-- Tab 1: Scan QR Guru Piket (Mobile Friendly) -->
+  <!-- Tab 1: Scan QR Guru Piket -->
   <div id="scanTab" class="card active">
-    <h3>Scanner QR Presensi (Guru Piket)</h3>
+    <h3>Scanner QR Presensi</h3>
     <div id="reader" style="width:100%; max-width:350px; margin:10px auto;"></div>
     <div id="scanResult" style="text-align:center; font-weight:bold; margin-top:10px;"></div>
   </div>
 
-  <!-- Tab 2: Rekap Absensi (Kepala Sekolah, Guru Piket, Admin, Operator) -->
+  <!-- Tab 2: Rekap Absensi -->
   <div id="rekapTab" class="card">
     <h3>Rekap Kehadiran Siswa</h3>
     <div style="overflow-x:auto;">
@@ -62,29 +65,34 @@
     </div>
   </div>
 
-  <!-- Tab 3: Tambah Data Siswa + Banyak WA -->
+  <!-- Tab 3: Tambah & Hapus Siswa -->
   <div id="siswaTab" class="card">
-    <h3>Tambah Data Siswa & Banyak No WA Ortu</h3>
+    <h3>Tambah Data Siswa & WA Ortu</h3>
     <form id="formSiswa">
+      <select id="s_sekolah" style="display:none;"></select>
       <input type="text" id="s_nisn" placeholder="NISN Siswa" required>
       <input type="text" id="s_nama" placeholder="Nama Lengkap Siswa" required>
       <input type="text" id="s_kelas" placeholder="Kelas (Contoh: X IPA 1)" required>
       <input type="text" id="s_ortu" placeholder="Nama Orang Tua" required>
-      <input type="text" id="s_wa" placeholder="No WA Ortu (Pisahkan koma jika banyak: 62812..., 62852...)" required>
+      <input type="text" id="s_wa" placeholder="No WA Ortu (Pisahkan koma: 62812..., 62852...)" required>
       <button type="submit">Simpan Data Siswa</button>
     </form>
     <div style="overflow-x:auto; margin-top:15px;">
       <table>
-        <thead><tr><th>NISN</th><th>Nama</th><th>Kelas</th><th>No WA Ortu</th></tr></thead>
+        <thead><tr><th>NISN</th><th>Nama</th><th>Kelas</th><th>No WA Ortu</th><th>Aksi</th></tr></thead>
         <tbody id="tabelSiswa"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- Tab 4: Tata Kelola User & Role (Admin Only) -->
+  <!-- Tab 4: Tata Kelola User & Password (Admin Master Control) -->
   <div id="userTab" class="card">
-    <h3>Tambah Username, Password & Role User</h3>
+    <h3>Tata Kelola User & Password</h3>
     <form id="formUser">
+      <div id="boxSekolahUser" style="display:none;">
+        <label>Pilih Sekolah untuk User ini:</label>
+        <select id="u_sekolah"></select>
+      </div>
       <input type="text" id="u_username" placeholder="Username" required>
       <input type="password" id="u_password" placeholder="Password" required>
       <input type="text" id="u_nama" placeholder="Nama Lengkap" required>
@@ -93,23 +101,25 @@
         <option value="guru_piket">Guru Piket</option>
         <option value="kepala_sekolah">Kepala Sekolah</option>
       </select>
-      <button type="submit">Daftarkan User</button>
+      <button type="submit">Daftarkan User Baru</button>
     </form>
-    <div style="overflow-x:auto; margin-top:15px;">
+    
+    <h4 style="margin-top:20px;">Daftar Akun & Password Sistem</h4>
+    <div style="overflow-x:auto;">
       <table>
-        <thead><tr><th>Username</th><th>Nama</th><th>Role</th></tr></thead>
+        <thead><tr><th>Username</th><th>Password (Admin)</th><th>Nama</th><th>Role</th><th>Sekolah</th><th>Aksi</th></tr></thead>
         <tbody id="tabelUser"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- Tab 5: Tambah Sekolah Baru (Multi-Tenant Admin Only) -->
+  <!-- Tab 5: Data Sekolah (Khusus Admin) -->
   <div id="sekolahTab" class="card">
-    <h3>Tambah Nama Sekolah Baru</h3>
+    <h3>Data Sekolah Terdaftar</h3>
     <form id="formSekolah">
-      <input type="text" id="sek_nama" placeholder="Contoh: SMA Kristen Ameth" required>
+      <input type="text" id="sek_nama" placeholder="Nama Sekolah (Contoh: SMA Kristen Ameth)" required>
       <input type="text" id="sek_alamat" placeholder="Alamat Sekolah">
-      <button type="submit">Tambah Sekolah</button>
+      <button type="submit">Tambah Sekolah Baru</button>
     </form>
     <div style="overflow-x:auto; margin-top:15px;">
       <table>
@@ -119,13 +129,40 @@
     </div>
   </div>
 
+  <!-- Tab 6: Ganti Password -->
+  <div id="settingTab" class="card">
+    <h3>Pengaturan Akun & Ganti Password</h3>
+    <form id="formChangePwd">
+      <input type="password" id="old_pwd" placeholder="Password Lama" required>
+      <input type="password" id="new_pwd" placeholder="Password Baru" required>
+      <button type="submit">Update Password</button>
+    </form>
+  </div>
+
   <script>
     const userSession = JSON.parse(localStorage.getItem('userSession'));
     if (!userSession) window.location.href = '/index.html';
 
-    // Set Nama Sekolah Otomatis
-    document.getElementById('appTitle').textContent = `SISTEM ABSENSI ${userSession.nama_sekolah ? userSession.nama_sekolah.toUpperCase() : ''}`;
-    document.getElementById('userInfo').textContent = `${userSession.nama} (${userSession.role.toUpperCase()})`;
+    const isAdmin = userSession.role === 'admin';
+
+    // Set Judul Sesuai Aturan Role
+    if (isAdmin) {
+      document.getElementById('appTitle').textContent = 'SISTEM ABSENSI (ADMINISTRATOR PUSAT)';
+    } else {
+      document.getElementById('appTitle').textContent = `SISTEM ABSENSI ${userSession.nama_sekolah ? userSession.nama_sekolah.toUpperCase() : ''}`;
+    }
+    document.getElementById('userInfo').textContent = `${userSession.nama} [${userSession.role.toUpperCase()}]`;
+
+    // Sembunyikan/Tampilkan Menu Berdasarkan Role
+    if (!isAdmin) {
+      document.getElementById('btnSekolahTab').style.display = 'none';
+      if (userSession.role !== 'operator') {
+        document.getElementById('btnUserTab').style.display = 'none';
+      }
+    } else {
+      document.getElementById('boxSekolahUser').style.display = 'block';
+      document.getElementById('s_sekolah').style.display = 'block';
+    }
 
     function logout() { localStorage.clear(); window.location.href = '/index.html'; }
 
@@ -141,13 +178,13 @@
       if (tabId === 'sekolahTab') loadSekolah();
     }
 
-    // Camera QR Scanner untuk Guru Piket
+    // QR Scanner
     let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 220 });
     html5QrcodeScanner.render((code) => {
       fetch('/api/absen-qr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sekolah_id: userSession.sekolah_id, nisn: code })
+        body: JSON.stringify({ sekolah_id: isAdmin ? null : userSession.sekolah_id, nisn: code })
       })
       .then(r => r.json())
       .then(d => {
@@ -157,37 +194,60 @@
       });
     });
 
-    // Submit Siswa + Banyak WA
+    // Simpan Siswa
     document.getElementById('formSiswa').addEventListener('submit', (e) => {
       e.preventDefault();
+      const targetSekolah = isAdmin ? document.getElementById('s_sekolah').value : userSession.sekolah_id;
       const listWA = document.getElementById('s_wa').value.split(',');
+      
       fetch('/api/siswa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sekolah_id: userSession.sekolah_id,
+          sekolah_id: targetSekolah,
           nisn: document.getElementById('s_nisn').value,
           nama_siswa: document.getElementById('s_nama').value,
           kelas: document.getElementById('s_kelas').value,
           nama_ortu: document.getElementById('s_ortu').value,
           no_wa_list: listWA
         })
-      }).then(() => { alert('Siswa Berhasil Disimpan!'); loadSiswa(); });
+      })
+      .then(r => r.json())
+      .then(d => {
+        if(d.success) { alert('Siswa Berhasil Disimpan!'); loadSiswa(); document.getElementById('formSiswa').reset(); }
+        else alert(d.error);
+      });
     });
 
     function loadSiswa() {
-      fetch(`/api/siswa/${userSession.sekolah_id}`).then(r => r.json()).then(data => {
+      const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
+      fetch(`/api/siswa/${targetSekolah}`).then(r => r.json()).then(data => {
         const tb = document.getElementById('tabelSiswa');
         tb.innerHTML = '';
         data.forEach(s => {
-          tb.innerHTML += `<tr><td>${s.nisn}</td><td>${s.nama_siswa}</td><td>${s.kelas}</td><td>${s.wa_ortu ? s.wa_ortu.join(', ') : '-'}</td></tr>`;
+          tb.innerHTML += `
+            <tr>
+              <td>${s.nisn}</td>
+              <td><b>${s.nama_siswa}</b></td>
+              <td>${s.kelas}</td>
+              <td>${s.wa_ortu ? s.wa_ortu.join(', ') : '-'}</td>
+              <td><button class="btn-danger" onclick="hapusSiswa(${s.id})">Hapus</button></td>
+            </tr>`;
         });
       });
     }
 
-    // Submit User Baru
+    function hapusSiswa(id) {
+      if(confirm('Yakin ingin menghapus data siswa ini?')) {
+        fetch(`/api/siswa/${id}`, { method: 'DELETE' }).then(() => loadSiswa());
+      }
+    }
+
+    // Simpan User
     document.getElementById('formUser').addEventListener('submit', (e) => {
       e.preventDefault();
+      const targetSekolah = isAdmin ? document.getElementById('u_sekolah').value : userSession.sekolah_id;
+      
       fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,46 +256,101 @@
           password: document.getElementById('u_password').value,
           nama: document.getElementById('u_nama').value,
           role: document.getElementById('u_role').value,
-          sekolah_id: userSession.sekolah_id
+          sekolah_id: targetSekolah
         })
-      }).then(() => { alert('User Berhasil Didaftarkan!'); loadUser(); });
+      })
+      .then(r => r.json())
+      .then(d => {
+        if(d.success) { alert('User Berhasil Didaftarkan!'); loadUser(); document.getElementById('formUser').reset(); }
+        else alert(d.error);
+      });
     });
 
     function loadUser() {
-      fetch(`/api/users/${userSession.sekolah_id}`).then(r => r.json()).then(data => {
+      const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
+      fetch(`/api/users/${targetSekolah}`).then(r => r.json()).then(data => {
         const tb = document.getElementById('tabelUser');
         tb.innerHTML = '';
-        data.forEach(u => { tb.innerHTML += `<tr><td>${u.username}</td><td>${u.nama}</td><td><span class="badge">${u.role}</span></td></tr>`; });
+        data.forEach(u => {
+          tb.innerHTML += `
+            <tr>
+              <td><b>${u.username}</b></td>
+              <td><span class="pwd-text">${isAdmin ? u.password : '******'}</span></td>
+              <td>${u.nama}</td>
+              <td><span class="badge">${u.role}</span></td>
+              <td>${u.nama_sekolah || 'Pusat'}</td>
+              <td><button class="btn-danger" onclick="hapusUser(${u.id})">Hapus</button></td>
+            </tr>`;
+        });
       });
     }
 
-    // Submit Sekolah Baru
+    function hapusUser(id) {
+      if(confirm('Yakin hapus akun pengguna ini?')) {
+        fetch(`/api/users/${id}`, { method: 'DELETE' }).then(() => loadUser());
+      }
+    }
+
+    // Sekolah
     document.getElementById('formSekolah').addEventListener('submit', (e) => {
       e.preventDefault();
       fetch('/api/sekolah', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nama_sekolah: document.getElementById('sek_nama').value, alamat: document.getElementById('sek_alamat').value })
-      }).then(() => { alert('Sekolah Baru Berhasil Ditambahkan!'); loadSekolah(); });
+      }).then(() => { alert('Sekolah Berhasil Ditambahkan!'); loadSekolah(); });
     });
 
     function loadSekolah() {
       fetch('/api/sekolah').then(r => r.json()).then(data => {
         const tb = document.getElementById('tabelSekolah');
+        const selUser = document.getElementById('u_sekolah');
+        const selSiswa = document.getElementById('s_sekolah');
+        
         tb.innerHTML = '';
-        data.forEach(s => { tb.innerHTML += `<tr><td>${s.id}</td><td><b>${s.nama_sekolah}</b></td></tr>`; });
+        if(selUser) selUser.innerHTML = '';
+        if(selSiswa) selSiswa.innerHTML = '';
+
+        data.forEach(s => {
+          tb.innerHTML += `<tr><td>${s.id}</td><td><b>${s.nama_sekolah}</b></td></tr>`;
+          if(selUser) selUser.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
+          if(selSiswa) selSiswa.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
+        });
       });
     }
 
     function loadRekap() {
-      fetch(`/api/rekap/${userSession.sekolah_id}`).then(r => r.json()).then(data => {
+      const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
+      fetch(`/api/rekap/${targetSekolah}`).then(r => r.json()).then(data => {
         const tb = document.getElementById('tabelRekap');
         tb.innerHTML = '';
         data.forEach(r => {
-          tb.innerHTML += `<tr><td>${r.tanggal.split('T')[0]}</td><td>${r.nama_siswa}</td><td>${r.kelas}</td><td>${r.jam_masuk||'-'}</td><td>${r.jam_pulang||'-'}</td></tr>`;
+          tb.innerHTML += `<tr><td>${r.tanggal.split('T')[0]}</td><td><b>${r.nama_siswa}</b></td><td>${r.kelas}</td><td>${r.jam_masuk||'-'}</td><td>${r.jam_pulang||'-'}</td></tr>`;
         });
       });
     }
+
+    // Ganti Password
+    document.getElementById('formChangePwd').addEventListener('submit', (e) => {
+      e.preventDefault();
+      fetch('/api/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userSession.id,
+          old_password: document.getElementById('old_pwd').value,
+          new_password: document.getElementById('new_pwd').value
+        })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if(d.success) alert('Password Berhasil Diubah!');
+        else alert(d.error);
+      });
+    });
+
+    // Auto load awal
+    loadSekolah();
   </script>
 </body>
 </html>
