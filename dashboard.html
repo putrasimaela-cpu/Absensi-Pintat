@@ -377,6 +377,95 @@
         });
       }
     }
+    // Fungsi Edit Data Siswa
+function editSiswa(id, nisnLama, namaLama, kelasLama, ortuLama, waLama) {
+  const nisnBaru = prompt("Edit NISN Siswa:", nisnLama || '');
+  if (nisnBaru === null) return;
+
+  const namaBaru = prompt("Edit Nama Lengkap Siswa:", namaLama);
+  if (!namaBaru) return alert("Nama tidak boleh kosong!");
+
+  const kelasBaru = prompt("Edit Kelas Siswa:", kelasLama);
+  if (!kelasBaru) return alert("Kelas tidak boleh kosong!");
+
+  const ortuBaru = prompt("Edit Nama Orang Tua:", ortuLama);
+  const waBaru = prompt("Edit No WA Ortu (Gunakan format 628... pisahkan koma jika lebih dari 1):", waLama);
+
+  fetch(`/api/siswa/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nisn: nisnBaru,
+      nama_siswa: namaBaru,
+      kelas: kelasBaru,
+      nama_ortu: ortuBaru,
+      no_wa: waBaru
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message);
+      loadSiswa(); // Refresh tabel siswa
+    } else {
+      alert(d.error);
+    }
+  });
+}
+
+// Fungsi Edit Data Sekolah/Cabang
+function editSekolah(id, namaLama, alamatLama) {
+  const namaBaru = prompt("Edit Nama Sekolah:", namaLama);
+  if (!namaBaru) return;
+
+  const alamatBaru = prompt("Edit Alamat Sekolah:", alamatLama || '');
+
+  fetch(`/api/sekolah/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nama_sekolah: namaBaru,
+      alamat: alamatBaru
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message);
+      loadSekolah(); // Refresh daftar sekolah
+    } else {
+      alert(d.error);
+    }
+  });
+}
+
+// Fungsi Edit Presensi / Absensi
+function editAbsensi(id, statusLama, jamMasukLama, jamPulangLama) {
+  const statusBaru = prompt("Edit Status Absensi (Hadir / Izin / Sakit / Alpha):", statusLama);
+  if (!statusBaru) return;
+
+  const jamMasukBaru = prompt("Edit Jam Masuk (Contoh: 07:15):", jamMasukLama || '-');
+  const jamPulangBaru = prompt("Edit Jam Pulang (Contoh: 14:00):", jamPulangLama || '-');
+
+  fetch(`/api/absensi/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      status: statusBaru,
+      jam_masuk: jamMasukBaru,
+      jam_pulang: jamPulangBaru
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message);
+      loadRekap(); // Refresh rekap absensi
+    } else {
+      alert(d.error);
+    }
+  });
+}
   </script>
 </body>
 </html>
