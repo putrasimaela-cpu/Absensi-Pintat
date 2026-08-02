@@ -24,25 +24,39 @@ async function kirimMultiWA(noWaList, pesan, token) {
 }
 
 // 1. Endpoint Login
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
+app.post('/api/siswa', async (req, res) => {
+  const { sekolah_id, nisn, nama_siswa, kelas, nama_ortu, no_wa_list } = req.body;
+  
+  if (!nama_siswa || !kelas) {
+    return res.status(400).json({ error: 'Nama Siswa dan Kelas wajib diisi!' });
+  }
+
   try {
-    const q = `
-      SELECT u.id, u.username, u.password, u.nama, u.role, u.sekolah_id, s.nama_sekolah 
-      FROM users u 
-      LEFT JOIN sekolah s ON u.sekolah_id = s.id 
-      WHERE u.username = $1 AND u.password = $2
-    `;
-    const result = await pool.query(q, [username, password]);
-    if (result.rows.length > 0) {
-      return res.json({ success: true, user: result.rows[0] });
+    // Memastikan sekolah_id valid angka
+    const targetSekolah = (sekolah_id && sekolah_id !== 'null' && sekolah_id !== '0') ? parseInt(sekolah_id) : null;
+
+    // 1. Simpan Siswa
+    const resSiswa = await pool.query(
+      'INSERT INTO siswa (sekolah_id, nisn, nama_siswa, kelas, nama_ortu) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [targetSekolah, nisn, nama_siswa, kelas, nama_ortu]
+    );
+    const siswaId = resSiswa.rows[0].id;
+
+    // 2. Simpan Nomor WA Ortu
+    if (no_wa_list && Array.isArray(no_wa_list)) {
+      for (let wa of no_wa_list) {
+        if (wa && wa.trim()) {
+          await pool.query('INSERT INTO wa_ortu (siswa_id, no_wa) VALUES ($1, $2)', [siswaId, wa.trim()]);
+        }
+      }
     }
-    return res.status(401).json({ error: 'Username atau password salah!' });
+
+    res.json({ success: true, message: 'Data siswa berhasil disimpan!' });
   } catch (err) {
-    return res.status(500).json({ error: 'Database Error: ' + err.message });
+    console.error("Error Simpan Siswa:", err);
+    res.status(500).json({ error: 'Gagal simpan siswa: ' + err.message });
   }
 });
-
 // 2. Data Sekolah (Admin)
 app.get('/api/sekolah', async (req, res) => {
   const r = await pool.query('SELECT * FROM sekolah ORDER BY nama_sekolah');
