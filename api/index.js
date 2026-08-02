@@ -278,4 +278,63 @@ _Pesan otomatis dari Sistem Absensi Sekolah._`;
     res.status(500).json({ error: 'Gagal kirim rekap harian: ' + err.message });
   }
 });
+// Endpoint Update / Edit Data Siswa
+app.put('/api/siswa/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nisn, nama_siswa, kelas, nama_ortu, no_wa } = req.body;
+  try {
+    // Update data siswa
+    await pool.query(
+      'UPDATE siswa SET nisn = $1, nama_siswa = $2, kelas = $3 WHERE id = $4',
+      [nisn, nama_siswa, kelas, id]
+    );
+
+    // Update data WA Ortu & Nama Ortu
+    await pool.query('DELETE FROM wa_ortu WHERE siswa_id = $1', [id]);
+    if (no_wa) {
+      const waList = no_wa.split(',').map(w => w.trim());
+      for (let wa of waList) {
+        if (wa) {
+          await pool.query(
+            'INSERT INTO wa_ortu (siswa_id, no_wa, nama_ortu) VALUES ($1, $2, $3)',
+            [id, wa, nama_ortu || 'Orang Tua']
+          );
+        }
+      }
+    }
+    res.json({ success: true, message: 'Data siswa berhasil diperbarui!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui data siswa: ' + err.message });
+  }
+});
+
+// Endpoint Update / Edit Data Sekolah
+app.put('/api/sekolah/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nama_sekolah, alamat } = req.body;
+  try {
+    await pool.query(
+      'UPDATE sekolah SET nama_sekolah = $1, alamat = $2 WHERE id = $3',
+      [nama_sekolah, alamat, id]
+    );
+    res.json({ success: true, message: 'Data sekolah berhasil diperbarui!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui sekolah: ' + err.message });
+  }
+});
+
+// Endpoint Update / Edit Data Absensi
+app.put('/api/absensi/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status, jam_masuk, jam_pulang } = req.body;
+  try {
+    await pool.query(
+      'UPDATE absensi SET status = $1, jam_masuk = $2, jam_pulang = $3 WHERE id = $4',
+      [status, jam_masuk, jam_pulang, id]
+    );
+    res.json({ success: true, message: 'Data absensi berhasil diperbarui!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui absensi: ' + err.message });
+  }
+});
 module.exports = app;
