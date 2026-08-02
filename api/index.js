@@ -2,24 +2,21 @@ const express = require('express');
 const { Pool } = require('pg');
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Database Connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
 // ==========================================
-// 1. AUTHENTICATION & MANAGEMENT USER
+// 1. AUTHENTICATION & USERS
 // ==========================================
-
-// Login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
-      'SELECT u.*, s.nama_sekolah FROM users u LEFT JOIN sekolah s ON u.sekolah_id = s.id WHERE u.username = $1 AND u.password = $2',
+      'SELECT u.*, s.nama_sekolah, s.logo FROM users u LEFT JOIN sekolah s ON u.sekolah_id = s.id WHERE u.username = $1 AND u.password = $2',
       [username, password]
     );
     if (result.rows.length > 0) {
@@ -32,7 +29,30 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Get Users
+// Ganti Username / Password
+app.put('/api/users/update-credential/:id', async (req, res) => {
+  const { id } = req.params;
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username dan password baru wajib diisi!' });
+  }
+  try {
+    // Cek apakah username sudah dipakai user lain
+    const cek = await pool.query('SELECT id FROM users WHERE username = $1 AND id != $2', [username, id]);
+    if (cek.rows.length > 0) {
+      return res.status(400).json({ error: 'Username tersebut sudah digunakan orang lain!' });
+    }
+
+    const updateRes = await pool.query(
+      'UPDATE users SET username = $1, password = $2 WHERE id = $3 RETURNING *',
+      [username, password, id]
+    );
+    res.json({ success: true, message: 'Username & Password berhasil diperbarui! Silakan login ulang.', user: updateRes.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal memperbarui akun: ' + err.message });
+  }
+});
+
 app.get('/api/users/:sekolah_id', async (req, res) => {
   const { sekolah_id } = req.params;
   try {
@@ -50,12 +70,8 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
   }
 });
 
-// Tambah User / Pengelola
 app.post('/api/users', async (req, res) => {
   const { username, password, nama, role, sekolah_id } = req.body;
-  if (!username || !password || !nama || !role) {
-    return res.status(400).json({ error: 'Semua kolom wajib diisi!' });
-  }
   try {
     const targetSekolah = (sekolah_id && sekolah_id !== '0' && sekolah_id !== 'null') ? parseInt(sekolah_id) : null;
     await pool.query(
@@ -68,7 +84,6 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Hapus User / Pengelola
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -80,10 +95,8 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // ==========================================
-// 2. MANAGEMENT SEKOLAH
+// 2. MANAGEMENT SEKOLAH & LOGO
 // ==========================================
-
-// Get All Sekolah
 app.get('/api/sekolah', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM sekolah ORDER BY id ASC');
@@ -93,33 +106,19 @@ app.get('/api/sekolah', async (req, res) => {
   }
 });
 
-// Tambah Sekolah
 app.post('/api/sekolah', async (req, res) => {
-  const { nama_sekolah, alamat } = req.body;
+  const { nama_sekolah, alamat, logo } = req.body;
   if (!nama_sekolah) {
     return res.status(400).json({ error: 'Nama sekolah tidak boleh kosong!' });
   }
   try {
-    await pool.query('INSERT INTO sekolah (nama_sekolah, alamat) VALUES ($1, $2)', [nama_sekolah, alamat || '']);
+    await pool.query('INSERT INTO sekolah (nama_sekolah, alamat, logo) VALUES ($1, $2, $3)', [nama_sekolah, alamat || '', logo || '']);
     res.json({ success: true, message: 'Sekolah berhasil ditambahkan!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Edit Sekolah
-app.put('/api/sekolah/:id', async (req, res) => {
-  const { id } = req.params;
-  const { nama_sekolah, alamat } = req.body;
-  try {
-    await pool.query('UPDATE sekolah SET nama_sekolah = $1, alamat = $2 WHERE id = $3', [nama_sekolah, alamat, id]);
-    res.json({ success: true, message: 'Data sekolah berhasil diperbarui!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Hapus Sekolah
 app.delete('/api/sekolah/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -131,10 +130,8 @@ app.delete('/api/sekolah/:id', async (req, res) => {
 });
 
 // ==========================================
-// 3. MANAGEMENT SISWA & WA ORTU
+// 3. MANAGEMENT SISWA & BARCODE
 // ==========================================
-
-// Get Siswa
 app.get('/api/siswa/:sekolah_id', async (req, res) => {
   const { sekolah_id } = req.params;
   try {
@@ -159,7 +156,6 @@ app.get('/api/siswa/:sekolah_id', async (req, res) => {
   }
 });
 
-// Tambah Siswa
 app.post('/api/siswa', async (req, res) => {
   const { sekolah_id, nisn, nama_siswa, kelas, nama_ortu, no_wa_list } = req.body;
   if (!nama_siswa || !kelas) {
@@ -189,31 +185,6 @@ app.post('/api/siswa', async (req, res) => {
   }
 });
 
-// Edit Siswa
-app.put('/api/siswa/:id', async (req, res) => {
-  const { id } = req.params;
-  const { nisn, nama_siswa, kelas, nama_ortu, no_wa } = req.body;
-  try {
-    await pool.query('UPDATE siswa SET nisn = $1, nama_siswa = $2, kelas = $3 WHERE id = $4', [nisn, nama_siswa, kelas, id]);
-    await pool.query('DELETE FROM wa_ortu WHERE siswa_id = $1', [id]);
-    if (no_wa) {
-      const waList = no_wa.split(',').map(w => w.trim());
-      for (let wa of waList) {
-        if (wa) {
-          await pool.query(
-            'INSERT INTO wa_ortu (siswa_id, no_wa, nama_ortu) VALUES ($1, $2, $3)',
-            [id, wa, nama_ortu || 'Orang Tua']
-          );
-        }
-      }
-    }
-    res.json({ success: true, message: 'Data siswa berhasil diperbarui!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Hapus Siswa
 app.delete('/api/siswa/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -226,10 +197,8 @@ app.delete('/api/siswa/:id', async (req, res) => {
 });
 
 // ==========================================
-// 4. ABSENSI & REKAP EXCEL
+// 4. ABSENSI (BARCODE & MANUAL)
 // ==========================================
-
-// Absensi Barcode (Hadir)
 app.post('/api/absensi-barcode', async (req, res) => {
   const { siswa_id } = req.body;
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
@@ -241,17 +210,16 @@ app.post('/api/absensi-barcode', async (req, res) => {
        DO UPDATE SET status = 'Hadir (Barcode)', jam_masuk = EXCLUDED.jam_masuk`,
       [siswa_id, jamSekarang]
     );
-    res.json({ success: true, message: 'Absen Barcode Berhasil! Status: Hadir' });
+    res.json({ success: true, message: 'Absen Berhasil! Status: Hadir' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Absensi Manual Guru Piket (Sakit, Izin, Tanpa Keterangan)
 app.post('/api/absensi-manual', async (req, res) => {
   const { siswa_id, status } = req.body;
   if (!siswa_id || !status) {
-    return res.status(400).json({ error: 'Pilih siswa dan status kehadiran!' });
+    return res.status(400).json({ error: 'Pilih siswa dan status!' });
   }
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
   try {
@@ -268,12 +236,11 @@ app.post('/api/absensi-manual', async (req, res) => {
   }
 });
 
-// Get Rekap Tabel
 app.get('/api/rekap/:sekolah_id', async (req, res) => {
   const { sekolah_id } = req.params;
   try {
     let query = `
-      SELECT a.id, a.tanggal, a.jam_masuk, a.jam_pulang, a.status, s.nisn, s.nama_siswa, s.kelas 
+      SELECT a.id, a.tanggal, a.jam_masuk, a.status, s.nisn, s.nama_siswa, s.kelas 
       FROM absensi a 
       JOIN siswa s ON a.siswa_id = s.id
     `;
@@ -283,7 +250,6 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
       params.push(sekolah_id);
     }
     query += ' ORDER BY a.tanggal DESC, a.id DESC LIMIT 200';
-
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
@@ -291,16 +257,12 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
   }
 });
 
-// Rekap Total Kehadiran untuk Export Excel
 app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
   const { sekolah_id } = req.params;
   try {
     let query = `
       SELECT 
-        s.id,
-        s.nisn,
-        s.nama_siswa,
-        s.kelas,
+        s.id, s.nisn, s.nama_siswa, s.kelas,
         COUNT(CASE WHEN a.status LIKE 'Hadir%' THEN 1 END) AS total_hadir,
         COUNT(CASE WHEN a.status = 'Sakit' THEN 1 END) AS total_sakit,
         COUNT(CASE WHEN a.status = 'Izin' THEN 1 END) AS total_izin,
@@ -314,7 +276,6 @@ app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
       params.push(sekolah_id);
     }
     query += ' GROUP BY s.id, s.nisn, s.nama_siswa, s.kelas ORDER BY s.kelas ASC, s.nama_siswa ASC';
-
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
