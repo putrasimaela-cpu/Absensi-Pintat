@@ -226,22 +226,25 @@
     });
 
     function loadSiswa() {
-      const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
-      fetch(`/api/siswa/${targetSekolah}`).then(r => r.json()).then(data => {
-        const tb = document.getElementById('tabelSiswa');
-        tb.innerHTML = '';
-        data.forEach(s => {
-          tb.innerHTML += `
-            <tr>
-              <td>${s.nisn}</td>
-              <td><b>${s.nama_siswa}</b></td>
-              <td>${s.kelas}</td>
-              <td>${s.wa_ortu ? s.wa_ortu.join(', ') : '-'}</td>
-              <td><button class="btn-danger" onclick="hapusSiswa(${s.id})">Hapus</button></td>
-            </tr>`;
-        });
-      });
-    }
+  const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
+  fetch(`/api/siswa/${targetSekolah}`).then(r => r.json()).then(data => {
+    const tb = document.getElementById('tabelSiswa');
+    tb.innerHTML = '';
+    data.forEach(s => {
+      tb.innerHTML += `
+        <tr>
+          <td>${s.nisn || '-'}</td>
+          <td><b>${s.nama_siswa}</b></td>
+          <td>${s.kelas}</td>
+          <td>${s.wa_ortu ? s.wa_ortu.join(', ') : '-'}</td>
+          <td>
+            <button style="background:#FFC107; color:#000; padding:4px 8px; margin-right:4px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="editSiswa(${s.id}, '${s.nisn||''}', '${s.nama_siswa}', '${s.kelas}', '${s.nama_ortu||''}', '${s.wa_ortu?s.wa_ortu.join(','):''}')">✏️ Edit</button>
+            <button class="btn-danger" onclick="hapusSiswa(${s.id})">Hapus</button>
+          </td>
+        </tr>`;
+    });
+  });
+}
 
     function hapusSiswa(id) {
       if(confirm('Yakin ingin menghapus data siswa ini?')) {
@@ -312,10 +315,14 @@
         const tb = document.getElementById('tabelSekolah');
         const selUser = document.getElementById('u_sekolah');
         const selSiswa = document.getElementById('s_sekolah');
+      
+        tb.innerHTML += `
+  <tr>
+    <td>${s.id}</td>
+    <td><b>${s.nama_sekolah}</b></td>
+    <td><button style="background:#FFC107; color:#000; padding:4px 8px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="editSekolah(${s.id}, '${s.nama_sekolah}', '${s.alamat||''}')">✏️ Edit</button></td>
+  </tr>`;
         
-        tb.innerHTML = '';
-        if(selUser) selUser.innerHTML = '';
-        if(selSiswa) selSiswa.innerHTML = '';
 
         data.forEach(s => {
           tb.innerHTML += `<tr><td>${s.id}</td><td><b>${s.nama_sekolah}</b></td></tr>`;
