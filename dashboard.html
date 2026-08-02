@@ -202,28 +202,40 @@
 
     // Simpan Siswa
     document.getElementById('formSiswa').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const targetSekolah = isAdmin ? document.getElementById('s_sekolah').value : userSession.sekolah_id;
-      const listWA = document.getElementById('s_wa').value.split(',');
-      
-      fetch('/api/siswa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sekolah_id: targetSekolah,
-          nisn: document.getElementById('s_nisn').value,
-          nama_siswa: document.getElementById('s_nama').value,
-          kelas: document.getElementById('s_kelas').value,
-          nama_ortu: document.getElementById('s_ortu').value,
-          no_wa_list: listWA
-        })
-      })
-      .then(r => r.json())
-      .then(d => {
-        if(d.success) { alert('Siswa Berhasil Disimpan!'); loadSiswa(); document.getElementById('formSiswa').reset(); }
-        else alert(d.error);
-      });
-    });
+  e.preventDefault();
+  
+  // Tentukan sekolah ID (jika admin ambil dari dropdown, jika user biasa ambil dari session)
+  const targetSekolah = isAdmin ? document.getElementById('s_sekolah').value : userSession.sekolah_id;
+  
+  const rawWa = document.getElementById('s_wa').value;
+  const listWA = rawWa ? rawWa.split(',').map(w => w.trim()) : [];
+
+  fetch('/api/siswa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sekolah_id: targetSekolah,
+      nisn: document.getElementById('s_nisn').value,
+      nama_siswa: document.getElementById('s_nama').value,
+      kelas: document.getElementById('s_kelas').value,
+      nama_ortu: document.getElementById('s_ortu').value,
+      no_wa_list: listWA
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      alert(d.message || 'Siswa Berhasil Disimpan!');
+      document.getElementById('formSiswa').reset(); // Reset form input
+      loadSiswa(); // Panggil ulang tabel agar data baru langsung muncul
+    } else {
+      alert('Gagal: ' + d.error);
+    }
+  })
+  .catch(err => {
+    alert('Terjadi kesalahan koneksi ke server.');
+  });
+});
 
     function loadSiswa() {
   const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
