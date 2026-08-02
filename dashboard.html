@@ -311,27 +311,32 @@
     });
 
     function loadSekolah() {
-      fetch('/api/sekolah').then(r => r.json()).then(data => {
-        const tb = document.getElementById('tabelSekolah');
-        const selUser = document.getElementById('u_sekolah');
-        const selSiswa = document.getElementById('s_sekolah');
-      
-        tb.innerHTML += `
-  <tr>
-    <td>${s.id}</td>
-    <td><b>${s.nama_sekolah}</b></td>
-    <td><button style="background:#FFC107; color:#000; padding:4px 8px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="editSekolah(${s.id}, '${s.nama_sekolah}', '${s.alamat||''}')">✏️ Edit</button></td>
-  </tr>`;
-        
+  fetch('/api/sekolah').then(r => r.json()).then(data => {
+    const tb = document.getElementById('tabelSekolah');
+    const selUser = document.getElementById('u_sekolah');
+    const selSiswa = document.getElementById('s_sekolah');
 
-        data.forEach(s => {
-          tb.innerHTML += `<tr><td>${s.id}</td><td><b>${s.nama_sekolah}</b></td></tr>`;
-          if(selUser) selUser.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
-          if(selSiswa) selSiswa.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
-        });
-      });
-    }
+    tb.innerHTML = '';
+    if(selUser) selUser.innerHTML = '<option value="">Pilih Sekolah</option>';
+    if(selSiswa) selSiswa.innerHTML = '<option value="">Pilih Sekolah</option>';
 
+    data.forEach(s => {
+      // Isikan ke tabel sekolah beserta tombol Edit
+      tb.innerHTML += `
+        <tr>
+          <td>${s.id}</td>
+          <td><b>${s.nama_sekolah}</b></td>
+          <td>
+            <button style="background:#FFC107; color:#000; padding:4px 8px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="editSekolah(${s.id}, '${s.nama_sekolah}', '${s.alamat||''}')">✏️ Edit</button>
+          </td>
+        </tr>`;
+
+      // Isikan ke dropdown pilihan sekolah
+      if(selUser) selUser.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
+      if(selSiswa) selSiswa.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
+    });
+  }).catch(err => console.error("Error load sekolah:", err));
+}
     function loadRekap() {
       const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
       fetch(`/api/rekap/${targetSekolah}`).then(r => r.json()).then(data => {
