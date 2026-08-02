@@ -3,27 +3,261 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Sistem Absensi</title>
+  <title>Sistem Absensi QR & WA Otomatis</title>
+  <!-- Library QR Code Scanner & Generator -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background-color: #f4f6f8; padding: 2rem; }
-    .header { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 1.5rem; color: #333; }
-    .btn-logout { background: #ff4d4d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
-    .content { margin-top: 2rem; background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f0f2f5; padding: 10px; }
+    .header-card { background: #0066ff; color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .clock-box { text-align: right; font-size: 0.9rem; }
+    .nav-tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; }
+    .tab-btn { padding: 10px 15px; background: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .tab-btn.active { background: #0066ff; color: white; }
+    .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; display: none; }
+    .card.active { display: block; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    button { background: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f8f9fa; }
+    #reader { width: 100%; max-width: 400px; margin: 0 auto; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>Dashboard Absensi</h1>
-    <a href="/index.html" class="btn-logout">Keluar</a>
+  <!-- Header & Jam Otomatis 24 Jam -->
+  <div class="header-card">
+    <div>
+      <h3>Absensi Pintar QR</h3>
+      <small id="hariTanggal">Memuat Waktu...</small>
+    </div>
+    <div class="clock-box">
+      <h2 id="jamOtomatis">00:00:00</h2>
+    </div>
   </div>
 
-  <div class="content">
-    <h2>Selamat Datang!</h2>
-    <p style="margin-top: 0.5rem; color: #666;">Anda berhasil masuk ke Sistem Absensi Pintar.</p>
+  <!-- Menu Navigasi -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('scanTab')">📷 Scan QR</button>
+    <button class="tab-btn" onclick="switchTab('siswaTab')">👨‍🎓 Data Siswa & QR</button>
+    <button class="tab-btn" onclick="switchTab('rekapTab')">📊 Rekap Absensi</button>
+    <button class="tab-btn" onclick="switchTab('settingTab')">⚙️ Pengaturan Jam & WA</button>
   </div>
 
+  <!-- Tab 1: Scanner QR Code -->
+  <div id="scanTab" class="card active">
+    <h3>Scanner Presensi Siswa</h3>
+    <p><small>Arahkan Kode QR (NISN) Siswa ke Kamera</small></p>
+    <div id="reader"></div>
+    <div id="scanResult" style="margin-top:15px; font-weight:bold; text-align:center;"></div>
+  </div>
+
+  <!-- Tab 2: Tata Kelola Siswa & QR Code Generator -->
+  <div id="siswaTab" class="card">
+    <h3>Tambah / Edit Data Siswa</h3>
+    <form id="siswaForm">
+      <input type="text" id="nisn" placeholder="NISN Siswa" required>
+      <input type="text" id="nama_siswa" placeholder="Nama Lengkap Siswa" required>
+      <input type="text" id="kelas" placeholder="Kelas (Contoh: 5-A)" required>
+      <input type="text" id="nama_ortu" placeholder="Nama Orang Tua / Wali" required>
+      <input type="text" id="no_wa_ortu" placeholder="No WA Ortu (Contoh: 628123456789)" required>
+      <button type="submit">Simpan Data Siswa</button>
+    </form>
+
+    <h4 style="margin-top:20px;">Daftar Siswa & Cetak Kartu QR</h4>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>NISN</th>
+            <th>Nama</th>
+            <th>Kelas</th>
+            <th>WA Ortu</th>
+            <th>Kode QR</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tabelSiswa"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 3: Rekap Absensi Realtime -->
+  <div id="rekapTab" class="card">
+    <h3>Rekap Kehadiran Siswa</h3>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Hari / Tanggal</th>
+            <th>Nama Siswa</th>
+            <th>Kelas</th>
+            <th>Masuk</th>
+            <th>Pulang</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabelRekap"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 4: Pengaturan Jam & WA -->
+  <div id="settingTab" class="card">
+    <h3>Pengaturan Batas Waktu & WhatsApp API</h3>
+    <form id="settingForm">
+      <label>Jam Masuk Maksimal (Tepat Waktu):</label>
+      <input type="time" id="jam_masuk" step="1" required>
+
+      <label>Jam Pulang Sekolah:</label>
+      <input type="time" id="jam_pulang" step="1" required>
+
+      <label>Token WhatsApp Fonnte API:</label>
+      <input type="text" id="fonnte_token" placeholder="Masukkan Token API Fonnte">
+
+      <button type="submit">Simpan Pengaturan</button>
+    </form>
+  </div>
+
+  <script>
+    // 1. Sistem Waktu 24 Jam & Tanggal Otomatis
+    function updateWaktu() {
+      const sekarang = new Date();
+      const opsiHari = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('hariTanggal').textContent = sekarang.toLocaleDateString('id-ID', opsiHari);
+      document.getElementById('jamOtomatis').textContent = sekarang.toLocaleTimeString('id-ID');
+    }
+    setInterval(updateWaktu, 1000);
+    updateWaktu();
+
+    // 2. Tab Navigation
+    function switchTab(tabId) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'siswaTab') loadSiswa();
+      if (tabId === 'rekapTab') loadRekap();
+      if (tabId === 'settingTab') loadPengaturan();
+    }
+
+    // 3. QR Code Scanner Setup
+    let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render((nisnCode) => {
+      fetch('/api/absen-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nisn: nisnCode })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const resDiv = document.getElementById('scanResult');
+        if (data.success) {
+          resDiv.style.color = 'green';
+          resDiv.textContent = `✅ ${data.message} - ${data.siswa.nama_siswa}`;
+        } else {
+          resDiv.style.color = 'red';
+          resDiv.textContent = `❌ ${data.error}`;
+        }
+      });
+    });
+
+    // 4. Data Siswa & QR Generator
+    document.getElementById('siswaForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = {
+        nisn: document.getElementById('nisn').value,
+        nama_siswa: document.getElementById('nama_siswa').value,
+        kelas: document.getElementById('kelas').value,
+        nama_ortu: document.getElementById('nama_ortu').value,
+        no_wa_ortu: document.getElementById('no_wa_ortu').value
+      };
+      fetch('/api/siswa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        alert('Data Siswa Berhasil Disimpan!');
+        document.getElementById('siswaForm').reset();
+        loadSiswa();
+      });
+    });
+
+    function loadSiswa() {
+      fetch('/api/siswa').then(res => res.json()).then(data => {
+        const tbody = document.getElementById('tabelSiswa');
+        tbody.innerHTML = '';
+        data.forEach(s => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${s.nisn}</td>
+              <td>${s.nama_siswa}</td>
+              <td>${s.kelas}</td>
+              <td>${s.no_wa_ortu}</td>
+              <td><div id="qr-${s.nisn}"></div></td>
+              <td><button onclick="hapusSiswa(${s.id})" style="background:red; padding:5px;">Hapus</button></td>
+            </tr>
+          `;
+          setTimeout(() => {
+            document.getElementById(`qr-${s.nisn}`).innerHTML = '';
+            new QRCode(document.getElementById(`qr-${s.nisn}`), { text: s.nisn, width: 60, height: 60 });
+          }, 100);
+        });
+      });
+    }
+
+    function hapusSiswa(id) {
+      if (confirm('Hapus data siswa ini?')) {
+        fetch(`/api/siswa/${id}`, { method: 'DELETE' }).then(() => loadSiswa());
+      }
+    }
+
+    // 5. Rekap Absensi
+    function loadRekap() {
+      fetch('/api/rekap').then(res => res.json()).then(data => {
+        const tbody = document.getElementById('tabelRekap');
+        tbody.innerHTML = '';
+        data.forEach(r => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${r.hari}, ${r.tanggal.split('T')[0]}</td>
+              <td><b>${r.nama_siswa}</b></td>
+              <td>${r.kelas}</td>
+              <td>${r.jam_masuk || '-'}</td>
+              <td>${r.jam_pulang || '-'}</td>
+              <td>${r.status}</td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    // 6. Pengaturan Waktu
+    function loadPengaturan() {
+      fetch('/api/pengaturan').then(res => res.json()).then(data => {
+        if (data) {
+          document.getElementById('jam_masuk').value = data.jam_masuk;
+          document.getElementById('jam_pulang').value = data.jam_pulang;
+          document.getElementById('fonnte_token').value = data.fonnte_token || '';
+        }
+      });
+    }
+
+    document.getElementById('settingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      fetch('/api/pengaturan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jam_masuk: document.getElementById('jam_masuk').value,
+          jam_pulang: document.getElementById('jam_pulang').value,
+          fonnte_token: document.getElementById('fonnte_token').value
+        })
+      }).then(() => alert('Pengaturan Berhasil Disimpan!'));
+    });
+  </script>
 </body>
 </html>
