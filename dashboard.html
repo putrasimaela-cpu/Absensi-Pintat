@@ -6,6 +6,8 @@
   <title>Sistem Absensi Sekolah</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+  <!-- Pustaka Scanner Kamera QR / Barcode -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
     .container { max-width: 1000px; margin: auto; }
@@ -30,6 +32,7 @@
     .tab-content.active { display: block; }
     .header-box { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
     .school-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #eee; padding: 2px; }
+    #reader { width: 100%; max-width: 400px; margin: auto; }
   </style>
 </head>
 <body>
@@ -50,15 +53,32 @@
 
   <!-- TABS -->
   <div class="nav-tabs">
-    <button id="btnTab1" class="active" onclick="switchTab('tabAbsensi')">📝 Absensi & Piket</button>
-    <button id="btnTab2" onclick="switchTab('tabSiswa')">👨‍🎓 Data Siswa & Barcode</button>
-    <button id="btnTab3" onclick="switchTab('tabSekolah')">🏫 Data Sekolah</button>
-    <button id="btnTab4" onclick="switchTab('tabPengelola')">👤 Kelola Pengelola</button>
-    <button id="btnTab5" onclick="switchTab('tabAkun')">⚙️ Pengaturan Akun</button>
+    <button id="btnTabScan" class="active" onclick="switchTab('tabScan')">📷 Scan Kamera</button>
+    <button id="btnTabAbsensi" onclick="switchTab('tabAbsensi')">📝 Piket & Rekap</button>
+    <button id="btnTabSiswa" onclick="switchTab('tabSiswa')">👨‍🎓 Data Siswa & Barcode</button>
+    <button id="btnTabSekolah" onclick="switchTab('tabSekolah')">🏫 Data Sekolah</button>
+    <button id="btnTabPengelola" onclick="switchTab('tabPengelola')">👤 Kelola Pengelola</button>
+    <button id="btnTabAkun" onclick="switchTab('tabAkun')">⚙️ Pengaturan</button>
+  </div>
+
+  <!-- TAB 0: SCAN KAMERA QR / BARCODE -->
+  <div id="tabScan" class="tab-content active">
+    <div class="card" style="text-align: center;">
+      <h3>📷 Scan Barcode / Kartu Siswa</h3>
+      <p style="color: #666; margin-bottom: 15px;">Arahkan kamera ke barcode NISN siswa untuk melakukan absensi otomatis.</p>
+      
+      <div id="reader"></div>
+      <div id="scanResult" style="margin-top: 15px; font-weight: bold; font-size: 16px; color: #198754;"></div>
+      
+      <div style="margin-top: 15px;">
+        <button class="btn-success" onclick="startScanner()">▶️ Mulai Kamera</button>
+        <button class="btn-danger" onclick="stopScanner()">⏹️ Matikan Kamera</button>
+      </div>
+    </div>
   </div>
 
   <!-- TAB 1: ABSENSI & PIKET -->
-  <div id="tabAbsensi" class="tab-content active">
+  <div id="tabAbsensi" class="tab-content">
     <div class="card">
       <h3>📝 Input Absensi Manual (Guru Piket)</h3>
       <form id="formAbsenPiket">
@@ -265,6 +285,7 @@
 <script>
   let userSession = JSON.parse(localStorage.getItem('userSession') || '{}');
   let isAdmin = userSession.role === 'ADMIN';
+  let html5QrCode = null;
 
   function init() {
     if (!userSession.username) {
@@ -281,18 +302,22 @@
       img.style.display = 'block';
     }
 
-    // Set nilai awal form pengaturan akun
     document.getElementById('setting_username').value = userSession.username || '';
 
     if (!isAdmin) {
-      document.getElementById('groupSekolahPiket').style.display = 'none';
-      document.getElementById('groupSekolahSiswa').style.display = 'none';
+      const elPiket = document.getElementById('groupSekolahPiket');
+      const elSiswa = document.getElementById('groupSekolahSiswa');
+      if(elPiket) elPiket.style.display = 'none';
+      if(elSiswa) elSiswa.style.display = 'none';
     }
 
     loadSekolah();
     loadSiswa();
     loadRekap();
     if(isAdmin) loadUser();
+    
+    // Otomatis aktifkan scanner saat pertama buka
+    startScanner();
   }
 
   function switchTab(tabId) {
@@ -300,9 +325,70 @@
     document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     event.target.classList.add('active');
+
+    if (tabId === 'tabScan') {
+      startScanner();
+    } else {
+      stopScanner();
+    }
+  }
+
+  // Pengaturan Scanner Kamera
+  function startScanner() {
+    if (!html5QrCode) {
+      html5QrCode = new Html5Qrcode("reader");
+    }
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        // Berhasil scan NISN
+        document.getElementById('scanResult').innerText = `Berhasil Scan: ${decodedText}. Mengirim Absen...`;
+        kirimAbsenBarcode(decodedText);
+      },
+      (errorMessage) => {
+        // Error scan diabaikan (karena kamera terus mendeteksi frame)
+      }
+    ).catch(err => {
+      console.log("Kamera tidak dapat dimulai: ", err);
+    });
+  }
+
+  function stopScanner() {
+    if (html5QrCode && html5QrCode.isScanning) {
+      html5QrCode.stop().then(() => {
+        console.log("Scanner dihentikan.");
+      }).catch(err => {
+        console.log("Gagal menghentikan scanner: ", err);
+      });
+    }
+  }
+
+  function kirimAbsenBarcode(nisn) {
+    fetch('/api/absensi-barcode-nisn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nisn: nisn })
+    }).then(r => r.json()).then(d => {
+      const resBox = document.getElementById('scanResult');
+      if (d.success) {
+        resBox.style.color = '#198754';
+        resBox.innerText = `✅ ${d.nama_siswa} (${d.kelas}) - Hadir!`;
+        loadRekap();
+        // Beri jeda 3 detik agar tidak double scan terus menerus
+        setTimeout(() => { resBox.innerText = ''; }, 3000);
+      } else {
+        resBox.style.color = '#dc3545';
+        resBox.innerText = `❌ ${d.error || 'Siswa tidak ditemukan!'}`;
+        setTimeout(() => { resBox.innerText = ''; }, 3000);
+      }
+    }).catch(err => {
+      console.error(err);
+    });
   }
 
   function logout() {
+    stopScanner();
     localStorage.removeItem('userSession');
     window.location.href = 'index.html';
   }
@@ -414,7 +500,6 @@
     });
   }
 
-  // Download Barcode Siswa
   function downloadBarcode(nisn, nama) {
     const canvas = document.getElementById('barcodeCanvas');
     JsBarcode(canvas, nisn, { format: "CODE128", displayValue: true });
@@ -424,7 +509,6 @@
     link.click();
   }
 
-  // Submit Absensi Piket
   document.getElementById('formAbsenPiket')?.addEventListener('submit', (e) => {
     e.preventDefault();
     fetch('/api/absensi-manual', {
@@ -440,7 +524,6 @@
     });
   });
 
-  // Submit Tambah Siswa
   document.getElementById('formSiswa')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const targetSekolah = isAdmin ? document.getElementById('s_sekolah').value : userSession.sekolah_id;
@@ -466,7 +549,6 @@
     });
   });
 
-  // Submit Tambah Sekolah & Logo
   document.getElementById('formSekolah')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const fileInput = document.getElementById('sek_logo');
@@ -498,7 +580,6 @@
     });
   }
 
-  // Submit User
   document.getElementById('formUser')?.addEventListener('submit', (e) => {
     e.preventDefault();
     fetch('/api/users', {
@@ -520,7 +601,6 @@
     });
   });
 
-  // Submit Ganti Username & Password Sendiri
   document.getElementById('formGantiAkun')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const newUsername = document.getElementById('setting_username').value;
