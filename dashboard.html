@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistem Absensi Sekolah</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
     .container { max-width: 1000px; margin: auto; }
@@ -22,39 +23,49 @@
     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     th { background: #0d6efd; color: white; }
     tr:nth-child(even) { background: #f9f9f9; }
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
     .nav-tabs button { background: #6c757d; }
     .nav-tabs button.active { background: #0d6efd; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .header-box { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    .school-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #eee; padding: 2px; }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <h2 id="userTitle">SISTEM ABSENSI</h2>
-        <small id="userSub"></small>
+    <div class="header-box">
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <img id="imgLogo" src="" class="school-logo" style="display:none;" alt="Logo">
+        <div>
+          <h2 id="userTitle" style="margin-bottom: 5px;">SISTEM ABSENSI</h2>
+          <small id="userSub" style="color: #666; font-weight: bold;"></small>
+        </div>
       </div>
       <button class="btn-danger" onclick="logout()">Keluar</button>
     </div>
   </div>
 
-  <!-- TABS NAVIGASI -->
+  <!-- TABS -->
   <div class="nav-tabs">
-    <button id="btnTab1" class="active" onclick="switchTab('tabAbsensi')">📝 Input Absensi Guru Piket</button>
-    <button id="btnTab2" onclick="switchTab('tabSiswa')">👨‍🎓 Data Siswa</button>
+    <button id="btnTab1" class="active" onclick="switchTab('tabAbsensi')">📝 Absensi & Piket</button>
+    <button id="btnTab2" onclick="switchTab('tabSiswa')">👨‍🎓 Data Siswa & Barcode</button>
     <button id="btnTab3" onclick="switchTab('tabSekolah')">🏫 Data Sekolah</button>
     <button id="btnTab4" onclick="switchTab('tabPengelola')">👤 Kelola Pengelola</button>
+    <button id="btnTab5" onclick="switchTab('tabAkun')">⚙️ Pengaturan Akun</button>
   </div>
 
-  <!-- TAB 1: ABSENSI & REKAP EXCEL -->
+  <!-- TAB 1: ABSENSI & PIKET -->
   <div id="tabAbsensi" class="tab-content active">
     <div class="card">
       <h3>📝 Input Absensi Manual (Guru Piket)</h3>
       <form id="formAbsenPiket">
+        <div class="form-group" id="groupSekolahPiket">
+          <label>Pilih Sekolah:</label>
+          <select id="piket_sekolah" onchange="loadDropdownSiswaPiket()"><option value="">-- Pilih Sekolah --</option></select>
+        </div>
         <div class="form-group">
           <label>Pilih Siswa:</label>
           <select id="piket_siswa" required><option value="">-- Pilih Siswa --</option></select>
@@ -67,14 +78,14 @@
             <option value="Tanpa Keterangan">❌ Tanpa Keterangan (Alpha)</option>
           </select>
         </div>
-        <button type="submit" class="btn-primary">💾 Simpan Status</button>
+        <button type="submit" class="btn-primary">💾 Simpan Status Kehadiran</button>
       </form>
     </div>
 
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3>📊 Rekap Kehadiran Siswa</h3>
-        <button class="btn-success" onclick="downloadExcelRekap()">📥 Download File Excel (.xlsx)</button>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
+        <h3>📊 Rekap Kehadiran Harian</h3>
+        <button class="btn-success" onclick="downloadExcelRekap()">📥 Download Rekap Excel (.xlsx)</button>
       </div>
       <table>
         <thead>
@@ -92,18 +103,18 @@
     </div>
   </div>
 
-  <!-- TAB 2: DATA SISWA -->
+  <!-- TAB 2: DATA SISWA & BARCODE -->
   <div id="tabSiswa" class="tab-content">
     <div class="card">
-      <h3>Tambah Data Siswa & WA Ortu</h3>
+      <h3>Tambah Data Siswa & Generate Barcode</h3>
       <form id="formSiswa">
         <div class="form-group" id="groupSekolahSiswa">
           <label>Pilih Sekolah:</label>
-          <select id="s_sekolah"><option value="">-- Pilih Sekolah --</option></select>
+          <select id="s_sekolah" required><option value="">-- Pilih Sekolah --</option></select>
         </div>
         <div class="form-group">
-          <label>NISN:</label>
-          <input type="text" id="s_nisn">
+          <label>NISN / ID Unik Barcode:</label>
+          <input type="text" id="s_nisn" required placeholder="Contoh: 12345678">
         </div>
         <div class="form-group">
           <label>Nama Siswa:</label>
@@ -118,15 +129,15 @@
           <input type="text" id="s_ortu">
         </div>
         <div class="form-group">
-          <label>No. WA Ortu (Pisahkan koma jika lebih dari 1):</label>
-          <input type="text" id="s_wa" placeholder="08123456789, 08987654321">
+          <label>No. WA Ortu (Pisahkan koma jika banyak):</label>
+          <input type="text" id="s_wa" placeholder="08123456789">
         </div>
-        <button type="submit" class="btn-success">Simpan Data Siswa</button>
+        <button type="submit" class="btn-success">💾 Simpan Data Siswa</button>
       </form>
     </div>
 
     <div class="card">
-      <h3>Daftar Siswa</h3>
+      <h3>Daftar Siswa & Unduh Barcode</h3>
       <table>
         <thead>
           <tr>
@@ -134,7 +145,7 @@
             <th>Nama Siswa</th>
             <th>Kelas</th>
             <th>No WA Ortu</th>
-            <th>Aksi</th>
+            <th>Aksi Barcode</th>
           </tr>
         </thead>
         <tbody id="tabelSiswa"></tbody>
@@ -142,18 +153,22 @@
     </div>
   </div>
 
-  <!-- TAB 3: DATA SEKOLAH -->
+  <!-- TAB 3: DATA SEKOLAH & UPLOAD LOGO -->
   <div id="tabSekolah" class="tab-content">
     <div class="card">
-      <h3>Tambah Sekolah Baru</h3>
+      <h3>Tambah Sekolah Baru & Upload Logo</h3>
       <form id="formSekolah">
         <div class="form-group">
           <label>Nama Sekolah:</label>
           <input type="text" id="sek_nama" required>
         </div>
         <div class="form-group">
-          <label>Alamat Sekolah:</label>
+          <label>Alamat:</label>
           <input type="text" id="sek_alamat">
+        </div>
+        <div class="form-group">
+          <label>Logo Sekolah (Pilih Gambar):</label>
+          <input type="file" id="sek_logo" accept="image/*">
         </div>
         <button type="submit" class="btn-primary">Tambah Sekolah</button>
       </form>
@@ -164,7 +179,7 @@
       <table>
         <thead>
           <tr>
-            <th>ID</th>
+            <th>Logo</th>
             <th>Nama Sekolah</th>
             <th>Alamat</th>
             <th>Aksi</th>
@@ -195,14 +210,14 @@
         <div class="form-group">
           <label>Role / Jabatan:</label>
           <select id="u_role" required>
-            <option value="ADMIN">ADMIN</option>
-            <option value="OPERATOR">OPERATOR</option>
+            <option value="ADMIN">ADMIN PUSAT</option>
+            <option value="OPERATOR">OPERATOR SEKOLAH</option>
             <option value="GURU PIKET">GURU PIKET</option>
           </select>
         </div>
         <div class="form-group">
           <label>Penugasan Sekolah:</label>
-          <select id="u_sekolah"><option value="">-- Semua Sekolah (Admin) --</option></select>
+          <select id="u_sekolah"><option value="">-- Semua Sekolah (Admin Pusat) --</option></select>
         </div>
         <button type="submit" class="btn-primary">Tambah Pengelola</button>
       </form>
@@ -213,7 +228,6 @@
       <table>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Username</th>
             <th>Nama</th>
             <th>Role</th>
@@ -225,7 +239,28 @@
       </table>
     </div>
   </div>
+
+  <!-- TAB 5: PENGATURAN AKUN -->
+  <div id="tabAkun" class="tab-content">
+    <div class="card">
+      <h3>⚙️ Pengaturan Ganti Username & Password</h3>
+      <form id="formGantiAkun">
+        <div class="form-group">
+          <label>Username Baru:</label>
+          <input type="text" id="setting_username" required>
+        </div>
+        <div class="form-group">
+          <label>Password Baru:</label>
+          <input type="password" id="setting_password" required placeholder="Masukkan password baru">
+        </div>
+        <button type="submit" class="btn-warning">💾 Simpan Perubahan Akun</button>
+      </form>
+    </div>
+  </div>
 </div>
+
+<!-- Canvas tersembunyi untuk cetak barcode -->
+<canvas id="barcodeCanvas" style="display:none;"></canvas>
 
 <script>
   let userSession = JSON.parse(localStorage.getItem('userSession') || '{}');
@@ -236,11 +271,25 @@
       window.location.href = 'index.html';
       return;
     }
+    
     document.getElementById('userTitle').innerText = userSession.nama_sekolah ? `SISTEM ABSENSI - ${userSession.nama_sekolah.toUpperCase()}` : 'SISTEM ABSENSI (ADMIN PUSAT)';
     document.getElementById('userSub').innerText = `${userSession.nama} [${userSession.role}]`;
+    
+    if (userSession.logo) {
+      const img = document.getElementById('imgLogo');
+      img.src = userSession.logo;
+      img.style.display = 'block';
+    }
+
+    // Set nilai awal form pengaturan akun
+    document.getElementById('setting_username').value = userSession.username || '';
+
+    if (!isAdmin) {
+      document.getElementById('groupSekolahPiket').style.display = 'none';
+      document.getElementById('groupSekolahSiswa').style.display = 'none';
+    }
 
     loadSekolah();
-    loadDropdownSiswaPiket();
     loadSiswa();
     loadRekap();
     if(isAdmin) loadUser();
@@ -258,39 +307,43 @@
     window.location.href = 'index.html';
   }
 
-  // --- API LOAD DATA ---
   function loadSekolah() {
     fetch('/api/sekolah').then(r => r.json()).then(data => {
       const tb = document.getElementById('tabelSekolah');
       const selUser = document.getElementById('u_sekolah');
       const selSiswa = document.getElementById('s_sekolah');
+      const selPiketSekolah = document.getElementById('piket_sekolah');
 
       if(tb) tb.innerHTML = '';
       if(selUser) selUser.innerHTML = '<option value="">-- Semua Sekolah (Admin) --</option>';
       if(selSiswa) selSiswa.innerHTML = '<option value="">-- Pilih Sekolah --</option>';
+      if(selPiketSekolah) selPiketSekolah.innerHTML = '<option value="">-- Pilih Sekolah --</option>';
 
       data.forEach(s => {
         if(tb) {
           tb.innerHTML += `
             <tr>
-              <td>${s.id}</td>
+              <td><img src="${s.logo || ''}" style="width:40px;height:40px;object-fit:contain;" onerror="this.src=''"></td>
               <td><b>${s.nama_sekolah}</b></td>
               <td>${s.alamat || '-'}</td>
-              <td>
-                <button class="btn-warning" onclick="editSekolah(${s.id}, '${s.nama_sekolah}', '${s.alamat||''}')">✏️ Edit</button>
-                <button class="btn-danger" onclick="hapusSekolah(${s.id})">🗑️ Hapus</button>
-              </td>
+              <td><button class="btn-danger" onclick="hapusSekolah(${s.id})">🗑️ Hapus</button></td>
             </tr>`;
         }
         if(selUser) selUser.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
         if(selSiswa) selSiswa.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
+        if(selPiketSekolah) selPiketSekolah.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
       });
+      loadDropdownSiswaPiket();
     });
   }
 
   function loadDropdownSiswaPiket() {
-    const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
-    fetch(`/api/siswa/${targetSekolah}`).then(r => r.json()).then(data => {
+    let targetSekolah = userSession.sekolah_id;
+    if (isAdmin) {
+      const selPiket = document.getElementById('piket_sekolah');
+      targetSekolah = selPiket ? selPiket.value : 0;
+    }
+    fetch(`/api/siswa/${targetSekolah || 0}`).then(r => r.json()).then(data => {
       const sel = document.getElementById('piket_siswa');
       if (!sel) return;
       sel.innerHTML = '<option value="">-- Pilih Siswa --</option>';
@@ -309,12 +362,12 @@
       data.forEach(s => {
         tb.innerHTML += `
           <tr>
-            <td>${s.nisn || '-'}</td>
-            <td><b>${s.nama_siswa}</b></td>
+            <td><b>${s.nisn || '-'}</b></td>
+            <td>${s.nama_siswa}</td>
             <td>${s.kelas}</td>
             <td>${s.wa_ortu ? s.wa_ortu.join(', ') : '-'}</td>
             <td>
-              <button class="btn-warning" onclick="editSiswa(${s.id}, '${s.nisn||''}', '${s.nama_siswa}', '${s.kelas}', '${s.nama_ortu||''}', '${s.wa_ortu?s.wa_ortu.join(','):''}')">✏️ Edit</button>
+              <button class="btn-primary" onclick="downloadBarcode('${s.nisn || s.id}', '${s.nama_siswa}')">📥 Unduh Barcode</button>
               <button class="btn-danger" onclick="hapusSiswa(${s.id})">🗑️ Hapus</button>
             </td>
           </tr>`;
@@ -351,7 +404,6 @@
       data.forEach(u => {
         tb.innerHTML += `
           <tr>
-            <td>${u.id}</td>
             <td>${u.username}</td>
             <td><b>${u.nama}</b></td>
             <td>${u.role}</td>
@@ -362,7 +414,17 @@
     });
   }
 
-  // --- SUBMIT FORM EVENTS ---
+  // Download Barcode Siswa
+  function downloadBarcode(nisn, nama) {
+    const canvas = document.getElementById('barcodeCanvas');
+    JsBarcode(canvas, nisn, { format: "CODE128", displayValue: true });
+    const link = document.createElement('a');
+    link.download = `Barcode_${nama}_${nisn}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // Submit Absensi Piket
   document.getElementById('formAbsenPiket')?.addEventListener('submit', (e) => {
     e.preventDefault();
     fetch('/api/absensi-manual', {
@@ -378,6 +440,7 @@
     });
   });
 
+  // Submit Tambah Siswa
   document.getElementById('formSiswa')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const targetSekolah = isAdmin ? document.getElementById('s_sekolah').value : userSession.sekolah_id;
@@ -403,15 +466,29 @@
     });
   });
 
+  // Submit Tambah Sekolah & Logo
   document.getElementById('formSekolah')?.addEventListener('submit', (e) => {
     e.preventDefault();
+    const fileInput = document.getElementById('sek_logo');
+    const nama = document.getElementById('sek_nama').value;
+    const alamat = document.getElementById('sek_alamat').value;
+
+    if (fileInput.files && fileInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(uploadEvent) {
+        kirimDataSekolah(nama, alamat, uploadEvent.target.result);
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    } else {
+      kirimDataSekolah(nama, alamat, '');
+    }
+  });
+
+  function kirimDataSekolah(nama, alamat, logoBase64) {
     fetch('/api/sekolah', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nama_sekolah: document.getElementById('sek_nama').value,
-        alamat: document.getElementById('sek_alamat').value
-      })
+      body: JSON.stringify({ nama_sekolah: nama, alamat: alamat, logo: logoBase64 })
     }).then(r => r.json()).then(d => {
       if(d.success) {
         alert(d.message);
@@ -419,8 +496,9 @@
         loadSekolah();
       } else alert('Gagal: ' + d.error);
     });
-  });
+  }
 
+  // Submit User
   document.getElementById('formUser')?.addEventListener('submit', (e) => {
     e.preventDefault();
     fetch('/api/users', {
@@ -442,58 +520,58 @@
     });
   });
 
-  // --- ACTIONS DELETE & DOWNLOAD ---
+  // Submit Ganti Username & Password Sendiri
+  document.getElementById('formGantiAkun')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const newUsername = document.getElementById('setting_username').value;
+    const newPassword = document.getElementById('setting_password').value;
+
+    fetch(`/api/users/update-credential/${userSession.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: newUsername, password: newPassword })
+    }).then(r => r.json()).then(d => {
+      if (d.success) {
+        alert(d.message);
+        localStorage.setItem('userSession', JSON.stringify(d.user));
+        window.location.reload();
+      } else {
+        alert('Gagal: ' + d.error);
+      }
+    });
+  });
+
   function hapusSekolah(id) {
-    if(confirm('Hapus data sekolah ini beserta semua siswanya?')) {
-      fetch(`/api/sekolah/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => {
-        alert(d.message || d.error);
-        loadSekolah();
-      });
+    if(confirm('Hapus sekolah ini?')) {
+      fetch(`/api/sekolah/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => { alert(d.message || d.error); loadSekolah(); });
     }
   }
 
   function hapusSiswa(id) {
-    if(confirm('Hapus data siswa ini?')) {
-      fetch(`/api/siswa/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => {
-        alert(d.message || d.error);
-        loadSiswa();
-        loadDropdownSiswaPiket();
-      });
+    if(confirm('Hapus siswa ini?')) {
+      fetch(`/api/siswa/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => { alert(d.message || d.error); loadSiswa(); loadDropdownSiswaPiket(); });
     }
   }
 
   function hapusUser(id) {
     if(confirm('Hapus pengelola ini?')) {
-      fetch(`/api/users/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => {
-        alert(d.message || d.error);
-        loadUser();
-      });
+      fetch(`/api/users/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => { alert(d.message || d.error); loadUser(); });
     }
   }
 
   function downloadExcelRekap() {
     const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
     fetch(`/api/rekap-excel/${targetSekolah}`).then(r => r.json()).then(data => {
-      if(!data || data.length === 0) {
-        alert('Tidak ada data absensi untuk diunduh.');
-        return;
-      }
+      if(!data || data.length === 0) { alert('Tidak ada data.'); return; }
       const excelData = data.map((d, index) => ({
-        "No": index + 1,
-        "NISN": d.nisn || '-',
-        "Nama Siswa": d.nama_siswa,
-        "Kelas": d.kelas,
-        "Hadir (Barcode/Manual)": parseInt(d.total_hadir || 0),
-        "Sakit": parseInt(d.total_sakit || 0),
-        "Izin": parseInt(d.total_izin || 0),
-        "Tanpa Keterangan (Alpha)": parseInt(d.total_alpha || 0),
-        "Total Kehadiran": parseInt(d.total_hadir || 0) + parseInt(d.total_sakit || 0) + parseInt(d.total_izin || 0) + parseInt(d.total_alpha || 0)
+        "No": index + 1, "NISN": d.nisn || '-', "Nama Siswa": d.nama_siswa, "Kelas": d.kelas,
+        "Hadir": parseInt(d.total_hadir || 0), "Sakit": parseInt(d.total_sakit || 0),
+        "Izin": parseInt(d.total_izin || 0), "Tanpa Keterangan": parseInt(d.total_alpha || 0)
       }));
-
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Absensi");
-      XLSX.writeFile(workbook, `Rekap_Kehadiran_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap");
+      XLSX.writeFile(workbook, `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.xlsx`);
     });
   }
 
