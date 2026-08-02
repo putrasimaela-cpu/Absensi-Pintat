@@ -358,5 +358,25 @@
     // Auto load awal
     loadSekolah();
   </script>
+  function kirimRekapHarianWA() {
+      const tokenWA = prompt("Masukkan Token Fonnte WA Anda:");
+      if (!tokenWA) return;
+
+      if (confirm("Apakah Anda yakin ingin mengirim rekap harian hari ini ke SELURUH Orang Tua siswa?")) {
+        fetch('/api/kirim-rekap-harian', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sekolah_id: isAdmin ? null : userSession.sekolah_id,
+            token_fonnte: tokenWA
+          })
+        })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) alert(d.message);
+          else alert(d.error);
+        });
+      }
+    }
 </body>
 </html>
