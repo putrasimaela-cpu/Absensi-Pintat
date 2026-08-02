@@ -220,5 +220,62 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
   const r = await pool.query(q, params);
   res.json(r.rows);
 });
+// Endpoint Kirim Rekap Presensi Harian ke Seluruh Ortu Siswa
+app.post('/api/kirim-rekap-harian', async (req, res) => {
+  const { sekolah_id, token_fonnte } = req.body;
+  const skrg = new Date();
+  const tanggal = skrg.toISOString().split('T')[0];
 
+  try {
+    let qSiswa = `
+      SELECT s.id, s.nama_siswa, s.kelas, array_agg(w.no_wa) as wa_ortu 
+      FROM siswa s 
+      LEFT JOIN wa_ortu w ON s.id = w.siswa_id 
+    `;
+    let params = [];
+    if (sekolah_id) {
+      qSiswa += ' WHERE s.sekolah_id = $1';
+      params.push(sekolah_id);
+    }
+    qSiswa += ' GROUP BY s.id';
+    
+    const dataSiswa = await pool.query(qSiswa, params);
+
+    for (let siswa of dataSiswa.rows) {
+      if (!siswa.wa_ortu || siswa.wa_ortu.length === 0 || !siswa.wa_ortu[0]) continue;
+
+      const qAbsen = 'SELECT * FROM absensi WHERE siswa_id = $1 AND tanggal = $2';
+      const resAbsen = await pool.query(qAbsen, [siswa.id, tanggal]);
+
+      let statusHarian = 'Tanpa Keterangan (Alpha)';
+      let jamMasuk = '-';
+      let jamPulang = '-';
+
+      if (resAbsen.rows.length > 0) {
+        const a = resAbsen.rows[0];
+        statusHarian = a.status || 'Hadir';
+        jamMasuk = a.jam_masuk || '-';
+        jamPulang = a.jam_pulang || '-';
+      }
+
+      const pesan = 
+`📌 *REKAP KEHADIRAN HARIAN*
+📅 Tanggal: ${tanggal}
+👤 Nama: ${siswa.nama_siswa}
+🏫 Kelas: ${siswa.kelas}
+
+STATUS: *${statusHarian.toUpperCase()}*
+⏰ Jam Masuk: ${jamMasuk}
+🚪 Jam Pulang: ${jamPulang}
+
+_Pesan otomatis dari Sistem Absensi Sekolah._`;
+
+      await kirimMultiWA(siswa.wa_ortu, pesan, token_fonnte);
+    }
+
+    res.json({ success: true, message: 'Rekap harian berhasil dikirim ke seluruh orang tua!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal kirim rekap harian: ' + err.message });
+  }
+});
 module.exports = app;
