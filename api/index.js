@@ -1,6 +1,5 @@
 const express = require('express');
 const { Pool } = require('pg');
-const fetch = require('node-fetch');
 
 const app = express();
 app.use(express.json());
