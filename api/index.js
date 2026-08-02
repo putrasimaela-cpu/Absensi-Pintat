@@ -4,15 +4,15 @@ const app = express();
 
 app.use(express.json());
 
-// Database Connection (Neon PostgreSQL)
+// Database Connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// ============================================================
-// 1. AUTHENTICATION & USERS
-// ============================================================
+// ==========================================
+// 1. AUTHENTICATION & MANAGEMENT USER
+// ==========================================
 
 // Login
 app.post('/api/login', async (req, res) => {
@@ -50,20 +50,38 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
   }
 });
 
-// Delete User
+// Tambah User / Pengelola
+app.post('/api/users', async (req, res) => {
+  const { username, password, nama, role, sekolah_id } = req.body;
+  if (!username || !password || !nama || !role) {
+    return res.status(400).json({ error: 'Semua kolom wajib diisi!' });
+  }
+  try {
+    const targetSekolah = (sekolah_id && sekolah_id !== '0' && sekolah_id !== 'null') ? parseInt(sekolah_id) : null;
+    await pool.query(
+      'INSERT INTO users (username, password, nama, role, sekolah_id) VALUES ($1, $2, $3, $4, $5)',
+      [username, password, nama, role, targetSekolah]
+    );
+    res.json({ success: true, message: 'Pengelola berhasil ditambahkan!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menambah pengelola: ' + err.message });
+  }
+});
+
+// Hapus User / Pengelola
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('DELETE FROM users WHERE id = $1', [id]);
-    res.json({ success: true, message: 'User berhasil dihapus!' });
+    res.json({ success: true, message: 'Pengelola berhasil dihapus!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============================================================
+// ==========================================
 // 2. MANAGEMENT SEKOLAH
-// ============================================================
+// ==========================================
 
 // Get All Sekolah
 app.get('/api/sekolah', async (req, res) => {
@@ -82,34 +100,39 @@ app.post('/api/sekolah', async (req, res) => {
     return res.status(400).json({ error: 'Nama sekolah tidak boleh kosong!' });
   }
   try {
-    await pool.query(
-      'INSERT INTO sekolah (nama_sekolah, alamat) VALUES ($1, $2)',
-      [nama_sekolah, alamat || '']
-    );
+    await pool.query('INSERT INTO sekolah (nama_sekolah, alamat) VALUES ($1, $2)', [nama_sekolah, alamat || '']);
     res.json({ success: true, message: 'Sekolah berhasil ditambahkan!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update / Edit Sekolah
+// Edit Sekolah
 app.put('/api/sekolah/:id', async (req, res) => {
   const { id } = req.params;
   const { nama_sekolah, alamat } = req.body;
   try {
-    await pool.query(
-      'UPDATE sekolah SET nama_sekolah = $1, alamat = $2 WHERE id = $3',
-      [nama_sekolah, alamat, id]
-    );
+    await pool.query('UPDATE sekolah SET nama_sekolah = $1, alamat = $2 WHERE id = $3', [nama_sekolah, alamat, id]);
     res.json({ success: true, message: 'Data sekolah berhasil diperbarui!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============================================================
+// Hapus Sekolah
+app.delete('/api/sekolah/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM sekolah WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Sekolah berhasil dihapus!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menghapus sekolah: ' + err.message });
+  }
+});
+
+// ==========================================
 // 3. MANAGEMENT SISWA & WA ORTU
-// ============================================================
+// ==========================================
 
 // Get Siswa
 app.get('/api/siswa/:sekolah_id', async (req, res) => {
@@ -144,15 +167,12 @@ app.post('/api/siswa', async (req, res) => {
   }
   try {
     const targetSekolah = (sekolah_id && sekolah_id !== 'null' && sekolah_id !== '0') ? parseInt(sekolah_id) : null;
-    
-    // Simpan data siswa
     const resSiswa = await pool.query(
       'INSERT INTO siswa (sekolah_id, nisn, nama_siswa, kelas) VALUES ($1, $2, $3, $4) RETURNING id',
       [targetSekolah, nisn, nama_siswa, kelas]
     );
     const siswaId = resSiswa.rows[0].id;
 
-    // Simpan WA Ortu
     if (no_wa_list && Array.isArray(no_wa_list)) {
       for (let wa of no_wa_list) {
         if (wa && wa.trim()) {
@@ -169,17 +189,12 @@ app.post('/api/siswa', async (req, res) => {
   }
 });
 
-// Update / Edit Siswa
+// Edit Siswa
 app.put('/api/siswa/:id', async (req, res) => {
   const { id } = req.params;
   const { nisn, nama_siswa, kelas, nama_ortu, no_wa } = req.body;
   try {
-    await pool.query(
-      'UPDATE siswa SET nisn = $1, nama_siswa = $2, kelas = $3 WHERE id = $4',
-      [nisn, nama_siswa, kelas, id]
-    );
-    
-    // Re-insert nomor WA ortu
+    await pool.query('UPDATE siswa SET nisn = $1, nama_siswa = $2, kelas = $3 WHERE id = $4', [nisn, nama_siswa, kelas, id]);
     await pool.query('DELETE FROM wa_ortu WHERE siswa_id = $1', [id]);
     if (no_wa) {
       const waList = no_wa.split(',').map(w => w.trim());
@@ -210,16 +225,55 @@ app.delete('/api/siswa/:id', async (req, res) => {
   }
 });
 
-// ============================================================
-// 4. MANAGEMENT ABSENSI
-// ============================================================
+// ==========================================
+// 4. ABSENSI & REKAP EXCEL
+// ==========================================
 
-// Get Rekap Absensi
+// Absensi Barcode (Hadir)
+app.post('/api/absensi-barcode', async (req, res) => {
+  const { siswa_id } = req.body;
+  const jamSekarang = new Date().toLocaleTimeString('id-ID');
+  try {
+    await pool.query(
+      `INSERT INTO absensi (siswa_id, tanggal, jam_masuk, status) 
+       VALUES ($1, CURRENT_DATE, $2, 'Hadir (Barcode)')
+       ON CONFLICT (siswa_id, tanggal) 
+       DO UPDATE SET status = 'Hadir (Barcode)', jam_masuk = EXCLUDED.jam_masuk`,
+      [siswa_id, jamSekarang]
+    );
+    res.json({ success: true, message: 'Absen Barcode Berhasil! Status: Hadir' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Absensi Manual Guru Piket (Sakit, Izin, Tanpa Keterangan)
+app.post('/api/absensi-manual', async (req, res) => {
+  const { siswa_id, status } = req.body;
+  if (!siswa_id || !status) {
+    return res.status(400).json({ error: 'Pilih siswa dan status kehadiran!' });
+  }
+  const jamSekarang = new Date().toLocaleTimeString('id-ID');
+  try {
+    await pool.query(
+      `INSERT INTO absensi (siswa_id, tanggal, jam_masuk, status) 
+       VALUES ($1, CURRENT_DATE, $2, $3)
+       ON CONFLICT (siswa_id, tanggal) 
+       DO UPDATE SET status = EXCLUDED.status, jam_masuk = EXCLUDED.jam_masuk`,
+      [siswa_id, jamSekarang, status]
+    );
+    res.json({ success: true, message: `Berhasil mencatat status: ${status}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get Rekap Tabel
 app.get('/api/rekap/:sekolah_id', async (req, res) => {
   const { sekolah_id } = req.params;
   try {
     let query = `
-      SELECT a.*, s.nama_siswa, s.kelas 
+      SELECT a.id, a.tanggal, a.jam_masuk, a.jam_pulang, a.status, s.nisn, s.nama_siswa, s.kelas 
       FROM absensi a 
       JOIN siswa s ON a.siswa_id = s.id
     `;
@@ -228,7 +282,7 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
       query += ' WHERE s.sekolah_id = $1';
       params.push(sekolah_id);
     }
-    query += ' ORDER BY a.id DESC LIMIT 100';
+    query += ' ORDER BY a.tanggal DESC, a.id DESC LIMIT 200';
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -237,49 +291,35 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
   }
 });
 
-// Update / Edit Absensi
-app.put('/api/absensi/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status, jam_masuk, jam_pulang } = req.body;
+// Rekap Total Kehadiran untuk Export Excel
+app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
+  const { sekolah_id } = req.params;
   try {
-    await pool.query(
-      'UPDATE absensi SET status = $1, jam_masuk = $2, jam_pulang = $3 WHERE id = $4',
-      [status, jam_masuk, jam_pulang, id]
-    );
-    res.json({ success: true, message: 'Data absensi berhasil diperbarui!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Kirim Rekap Harian ke WA via Fonnte
-app.post('/api/kirim-rekap-harian', async (req, res) => {
-  const { sekolah_id, token_fonnte } = req.body;
-  try {
-    // Ambil data absensi hari ini beserta nomor WA Ortu
     let query = `
-      SELECT s.nama_siswa, s.kelas, a.status, a.jam_masuk, w.no_wa
-      FROM absensi a
-      JOIN siswa s ON a.siswa_id = s.id
-      JOIN wa_ortu w ON s.id = w.siswa_id
-      WHERE a.tanggal = CURRENT_DATE
+      SELECT 
+        s.id,
+        s.nisn,
+        s.nama_siswa,
+        s.kelas,
+        COUNT(CASE WHEN a.status LIKE 'Hadir%' THEN 1 END) AS total_hadir,
+        COUNT(CASE WHEN a.status = 'Sakit' THEN 1 END) AS total_sakit,
+        COUNT(CASE WHEN a.status = 'Izin' THEN 1 END) AS total_izin,
+        COUNT(CASE WHEN a.status = 'Tanpa Keterangan' OR a.status = 'Alpha' THEN 1 END) AS total_alpha
+      FROM siswa s
+      LEFT JOIN absensi a ON s.id = a.siswa_id
     `;
     let params = [];
-    if (sekolah_id) {
-      query += ' AND s.sekolah_id = $1';
+    if (sekolah_id !== '0') {
+      query += ' WHERE s.sekolah_id = $1';
       params.push(sekolah_id);
     }
+    query += ' GROUP BY s.id, s.nisn, s.nama_siswa, s.kelas ORDER BY s.kelas ASC, s.nama_siswa ASC';
 
     const result = await pool.query(query, params);
-    
-    // Proses pengiriman dapat diintegrasikan dengan Fonnte API di sini
-    res.json({ success: true, message: `Berhasil memproses rekap harian untuk ${result.rows.length} penerima!` });
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ============================================================
-// EXPORT FOR VERCEL
-// ============================================================
 module.exports = app;
