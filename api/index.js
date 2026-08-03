@@ -88,41 +88,26 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get Sekolah
-app.post('/api/sekolah', (req, res) => {
-    const { nama_sekolah, alamat } = req.body;
-
-    // Validasi input
-    if (!nama_sekolah || !alamat) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Nama sekolah dan alamat wajib diisi!' 
-        });
-    }
-    const query = 'INSERT INTO sekolah (nama_sekolah, alamat) VALUES (?, ?)';
-    
-    db.query(query, [nama_sekolah, alamat], (err, result) => {
-        if (err) {
-            console.error('Error Database:', err);
-            return res.status(500).json({ 
-                success: false, 
-                message: 'Gagal menyimpan data ke database.' 
-            });
-        }
-
-        res.status(200).json({ 
-            success: true, 
-            message: 'Data sekolah berhasil ditambahkan!',
-            data: { id: result.insertId, nama_sekolah, alamat }
-        });
-    });
+app.get('/api/sekolah', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM sekolah ORDER BY id DESC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-        res.status(200).json({ 
-            success: true, 
-            message: 'Data sekolah berhasil ditambahkan!',
-            data: { id: result.insertId, nama_sekolah, alamat }
-        });
-    });
+app.post('/api/sekolah', async (req, res) => {
+  const { nama_sekolah, alamat, logo } = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO sekolah (nama_sekolah, alamat, logo) VALUES ($1, $2, $3)',
+      [nama_sekolah, alamat, logo]
+    );
+    res.json({ success: true, message: 'Sekolah berhasil ditambahkan!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/api/sekolah/:id', async (req, res) => {
