@@ -6,7 +6,6 @@
   <title>Sistem Absensi Sekolah</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
-  <!-- Pustaka Scanner Kamera QR / Barcode -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; }
@@ -33,6 +32,10 @@
     .header-box { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
     .school-logo { width: 60px; height: 60px; object-fit: contain; border-radius: 50%; background: #eee; padding: 2px; }
     #reader { width: 100%; max-width: 400px; margin: auto; }
+    .badge-hadir { background: #d1e7dd; color: #0f5132; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-sakit { background: #fff3cd; color: #664d03; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-izin { background: #cff4fc; color: #055160; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-alpha { background: #f8d7da; color: #842029; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -57,15 +60,14 @@
     <button id="btnTabAbsensi" onclick="switchTab('tabAbsensi')">📝 Piket & Rekap</button>
     <button id="btnTabSiswa" onclick="switchTab('tabSiswa')">👨‍🎓 Data Siswa & Barcode</button>
     <button id="btnTabSekolah" onclick="switchTab('tabSekolah')">🏫 Data Sekolah</button>
-    <button id="btnTabPengelola" onclick="switchTab('tabPengelola')">👤 Kelola Pengelola</button>
-    <button id="btnTabAkun" onclick="switchTab('tabAkun')">⚙️ Pengaturan</button>
+    <button id="btnTabPengelola" class="admin-only" onclick="switchTab('tabPengelola')" style="display:none;">👤 Kelola Pengelola</button>
   </div>
 
   <!-- TAB 0: SCAN KAMERA QR / BARCODE -->
   <div id="tabScan" class="tab-content active">
     <div class="card" style="text-align: center;">
-      <h3>📷 Scan Barcode / Kartu Siswa</h3>
-      <p style="color: #666; margin-bottom: 15px;">Arahkan kamera ke barcode NISN siswa untuk melakukan absensi otomatis.</p>
+      <h3>📷 Scan Barcode / Kartu Siswa (Otomatis Hadir)</h3>
+      <p style="color: #666; margin-bottom: 15px;">Arahkan kamera ke barcode NISN siswa. Sistem otomatis mencentang status <b>Hadir</b>.</p>
       
       <div id="reader"></div>
       <div id="scanResult" style="margin-top: 15px; font-weight: bold; font-size: 16px; color: #198754;"></div>
@@ -91,8 +93,9 @@
           <select id="piket_siswa" required><option value="">-- Pilih Siswa --</option></select>
         </div>
         <div class="form-group">
-          <label>Status Kehadiran:</label>
+          <label>Keterangan Kehadiran:</label>
           <select id="piket_status" required>
+            <option value="Hadir">✅ Hadir</option>
             <option value="Sakit">🏥 Sakit</option>
             <option value="Izin">✉️ Izin</option>
             <option value="Tanpa Keterangan">❌ Tanpa Keterangan (Alpha)</option>
@@ -104,7 +107,7 @@
 
     <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-        <h3>📊 Rekap Kehadiran Harian</h3>
+        <h3>📊 Rekap Kehadiran Harian & Petugas</h3>
         <button class="btn-success" onclick="downloadExcelRekap()">📥 Download Rekap Excel (.xlsx)</button>
       </div>
       <table>
@@ -116,6 +119,7 @@
             <th>Kelas</th>
             <th>Jam Masuk</th>
             <th>Status</th>
+            <th>Petugas Piket</th>
           </tr>
         </thead>
         <tbody id="tabelRekap"></tbody>
@@ -173,7 +177,7 @@
     </div>
   </div>
 
-  <!-- TAB 3: DATA SEKOLAH & UPLOAD LOGO -->
+  <!-- TAB 3: DATA SEKOLAH -->
   <div id="tabSekolah" class="tab-content">
     <div class="card">
       <h3>Tambah Sekolah Baru & Upload Logo</h3>
@@ -210,8 +214,8 @@
     </div>
   </div>
 
-  <!-- TAB 4: KELOLA PENGELOLA -->
-  <div id="tabPengelola" class="tab-content">
+  <!-- TAB 4: KELOLA PENGELOLA (KHUSUS ADMIN) -->
+  <div id="tabPengelola" class="tab-content admin-only" style="display:none;">
     <div class="card">
       <h3>Tambah Pengelola / User Baru</h3>
       <form id="formUser">
@@ -244,7 +248,7 @@
     </div>
 
     <div class="card">
-      <h3>Daftar Pengelola</h3>
+      <h3>Daftar Pengelola (Ubah Sandi / Hapus)</h3>
       <table>
         <thead>
           <tr>
@@ -252,7 +256,7 @@
             <th>Nama</th>
             <th>Role</th>
             <th>Sekolah</th>
-            <th>Aksi</th>
+            <th>Aksi Admin</th>
           </tr>
         </thead>
         <tbody id="tabelUser"></tbody>
@@ -260,32 +264,15 @@
     </div>
   </div>
 
-  <!-- TAB 5: PENGATURAN AKUN -->
-  <div id="tabAkun" class="tab-content">
-    <div class="card">
-      <h3>⚙️ Pengaturan Ganti Username & Password</h3>
-      <form id="formGantiAkun">
-        <div class="form-group">
-          <label>Username Baru:</label>
-          <input type="text" id="setting_username" required>
-        </div>
-        <div class="form-group">
-          <label>Password Baru:</label>
-          <input type="password" id="setting_password" required placeholder="Masukkan password baru">
-        </div>
-        <button type="submit" class="btn-warning">💾 Simpan Perubahan Akun</button>
-      </form>
-    </div>
-  </div>
 </div>
 
-<!-- Canvas tersembunyi untuk cetak barcode -->
 <canvas id="barcodeCanvas" style="display:none;"></canvas>
 
 <script>
   let userSession = JSON.parse(localStorage.getItem('userSession') || '{}');
   let isAdmin = userSession.role === 'ADMIN';
   let html5QrCode = null;
+  let isScanningActive = false;
 
   function init() {
     if (!userSession.username) {
@@ -302,13 +289,16 @@
       img.style.display = 'block';
     }
 
-    document.getElementById('setting_username').value = userSession.username || '';
-
     if (!isAdmin) {
       const elPiket = document.getElementById('groupSekolahPiket');
       const elSiswa = document.getElementById('groupSekolahSiswa');
       if(elPiket) elPiket.style.display = 'none';
       if(elSiswa) elSiswa.style.display = 'none';
+
+      // Sembunyikan tab pengelola untuk non-admin
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    } else {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
     }
 
     loadSekolah();
@@ -316,7 +306,6 @@
     loadRekap();
     if(isAdmin) loadUser();
     
-    // Otomatis aktifkan scanner saat pertama buka
     startScanner();
   }
 
@@ -333,34 +322,34 @@
     }
   }
 
-  // Pengaturan Scanner Kamera
   function startScanner() {
     if (!html5QrCode) {
       html5QrCode = new Html5Qrcode("reader");
     }
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        // Berhasil scan NISN
-        document.getElementById('scanResult').innerText = `Berhasil Scan: ${decodedText}. Mengirim Absen...`;
-        kirimAbsenBarcode(decodedText);
-      },
-      (errorMessage) => {
-        // Error scan diabaikan (karena kamera terus mendeteksi frame)
-      }
-    ).catch(err => {
-      console.log("Kamera tidak dapat dimulai: ", err);
-    });
+    if (!isScanningActive) {
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          if (!isScanningActive) return;
+          isScanningActive = false;
+          document.getElementById('scanResult').innerText = `Terdeteksi NISN: ${decodedText}. Menyimpan...`;
+          kirimAbsenBarcode(decodedText);
+        },
+        (errorMessage) => {}
+      ).then(() => {
+        isScanningActive = true;
+      }).catch(err => {
+        console.log("Kamera tidak dapat dimulai: ", err);
+      });
+    }
   }
 
   function stopScanner() {
-    if (html5QrCode && html5QrCode.isScanning) {
+    if (html5QrCode && isScanningActive) {
       html5QrCode.stop().then(() => {
-        console.log("Scanner dihentikan.");
-      }).catch(err => {
-        console.log("Gagal menghentikan scanner: ", err);
-      });
+        isScanningActive = false;
+      }).catch(err => {});
     }
   }
 
@@ -368,22 +357,31 @@
     fetch('/api/absensi-barcode-nisn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nisn: nisn })
+      body: JSON.stringify({ 
+        nisn: nisn, 
+        pendaftar_id: userSession.id 
+      })
     }).then(r => r.json()).then(d => {
       const resBox = document.getElementById('scanResult');
       if (d.success) {
         resBox.style.color = '#198754';
-        resBox.innerText = `✅ ${d.nama_siswa} (${d.kelas}) - Hadir!`;
+        resBox.innerHTML = `✅ BERHASIL DICATAT HADIR: <br><b>${d.nama_siswa}</b> (${d.kelas})<br>Jam: ${d.jam}`;
         loadRekap();
-        // Beri jeda 3 detik agar tidak double scan terus menerus
-        setTimeout(() => { resBox.innerText = ''; }, 3000);
+        setTimeout(() => { 
+          resBox.innerText = ''; 
+          isScanningActive = true; 
+        }, 3000);
       } else {
         resBox.style.color = '#dc3545';
         resBox.innerText = `❌ ${d.error || 'Siswa tidak ditemukan!'}`;
-        setTimeout(() => { resBox.innerText = ''; }, 3000);
+        setTimeout(() => { 
+          resBox.innerText = ''; 
+          isScanningActive = true; 
+        }, 3000);
       }
     }).catch(err => {
       console.error(err);
+      isScanningActive = true;
     });
   }
 
@@ -468,6 +466,11 @@
       if (!tb) return;
       tb.innerHTML = '';
       data.forEach(r => {
+        let badgeClass = 'badge-hadir';
+        if (r.status === 'Sakit') badgeClass = 'badge-sakit';
+        else if (r.status === 'Izin') badgeClass = 'badge-izin';
+        else if (r.status.includes('Tanpa Keterangan') || r.status.includes('Alpha')) badgeClass = 'badge-alpha';
+
         tb.innerHTML += `
           <tr>
             <td>${r.tanggal ? r.tanggal.split('T')[0] : '-'}</td>
@@ -475,28 +478,52 @@
             <td><b>${r.nama_siswa}</b></td>
             <td>${r.kelas}</td>
             <td>${r.jam_masuk || '-'}</td>
-            <td><b>${r.status}</b></td>
+            <td><span class="${badgeClass}">${r.status}</span></td>
+            <td>${r.nama_piket || 'Sistem / Mandiri'}</td>
           </tr>`;
       });
     });
   }
 
   function loadUser() {
-    const targetSekolah = isAdmin ? 0 : userSession.sekolah_id;
-    fetch(`/api/users/${targetSekolah}`).then(r => r.json()).then(data => {
+    if (!isAdmin) return;
+    fetch(`/api/users/0`).then(r => r.json()).then(data => {
       const tb = document.getElementById('tabelUser');
       if (!tb) return;
       tb.innerHTML = '';
       data.forEach(u => {
         tb.innerHTML += `
           <tr>
-            <td>${u.username}</td>
-            <td><b>${u.nama}</b></td>
-            <td>${u.role}</td>
+            <td><b>${u.username}</b></td>
+            <td>${u.nama}</td>
+            <td><span class="badge-hadir">${u.role}</span></td>
             <td>${u.nama_sekolah || 'Pusat'}</td>
-            <td><button class="btn-danger" onclick="hapusUser(${u.id})">🗑️ Hapus</button></td>
+            <td>
+              <button class="btn-warning" onclick="promptResetPassword(${u.id}, '${u.username}', '${u.nama}')">🔑 Ubah Sandi</button>
+              <button class="btn-danger" onclick="hapusUser(${u.id})">🗑️ Hapus</button>
+            </td>
           </tr>`;
       });
+    });
+  }
+
+  function promptResetPassword(id, currentUsername, nama) {
+    const newUsername = prompt(`Masukkan Username baru untuk ${nama}:`, currentUsername);
+    if (!newUsername) return;
+    const newPassword = prompt(`Masukkan Password baru untuk ${nama}:`);
+    if (!newPassword) return;
+
+    fetch(`/api/admin/reset-password/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: newUsername, password: newPassword })
+    }).then(r => r.json()).then(d => {
+      if (d.success) {
+        alert(d.message);
+        loadUser();
+      } else {
+        alert('Gagal: ' + d.error);
+      }
     });
   }
 
@@ -516,7 +543,8 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         siswa_id: document.getElementById('piket_siswa').value,
-        status: document.getElementById('piket_status').value
+        status: document.getElementById('piket_status').value,
+        user_id: userSession.id
       })
     }).then(r => r.json()).then(d => {
       if(d.success) { alert(d.message); loadRekap(); }
@@ -601,26 +629,6 @@
     });
   });
 
-  document.getElementById('formGantiAkun')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const newUsername = document.getElementById('setting_username').value;
-    const newPassword = document.getElementById('setting_password').value;
-
-    fetch(`/api/users/update-credential/${userSession.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: newUsername, password: newPassword })
-    }).then(r => r.json()).then(d => {
-      if (d.success) {
-        alert(d.message);
-        localStorage.setItem('userSession', JSON.stringify(d.user));
-        window.location.reload();
-      } else {
-        alert('Gagal: ' + d.error);
-      }
-    });
-  });
-
   function hapusSekolah(id) {
     if(confirm('Hapus sekolah ini?')) {
       fetch(`/api/sekolah/${id}`, { method: 'DELETE' }).then(r => r.json()).then(d => { alert(d.message || d.error); loadSekolah(); });
@@ -644,14 +652,20 @@
     fetch(`/api/rekap-excel/${targetSekolah}`).then(r => r.json()).then(data => {
       if(!data || data.length === 0) { alert('Tidak ada data.'); return; }
       const excelData = data.map((d, index) => ({
-        "No": index + 1, "NISN": d.nisn || '-', "Nama Siswa": d.nama_siswa, "Kelas": d.kelas,
-        "Hadir": parseInt(d.total_hadir || 0), "Sakit": parseInt(d.total_sakit || 0),
-        "Izin": parseInt(d.total_izin || 0), "Tanpa Keterangan": parseInt(d.total_alpha || 0)
+        "No": index + 1, 
+        "NISN": d.nisn || '-', 
+        "Nama Siswa": d.nama_siswa, 
+        "Kelas": d.kelas,
+        "Total Hadir": parseInt(d.total_hadir || 0),
+        "Total Sakit": parseInt(d.total_sakit || 0),
+        "Total Izin": parseInt(d.total_izin || 0),
+        "Total Tanpa Keterangan (Alpha)": parseInt(d.total_alpha || 0),
+        "Petugas / Guru Piket Terakhir": d.guru_piket_terakhir || 'Sistem / Mandiri'
       }));
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap");
-      XLSX.writeFile(workbook, `Rekap_Absensi_${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Akumulasi Rekap");
+      XLSX.writeFile(workbook, `Akumulasi_Rekap_Absensi_${new Date().toISOString().split('T')[0]}.xlsx`);
     });
   }
 
