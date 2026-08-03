@@ -88,29 +88,41 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get Sekolah
-document.getElementById('formTambahSekolah').addEventListener('submit', async (e) => {
-    e.preventDefault();
+app.post('/api/sekolah', (req, res) => {
+    const { nama_sekolah, alamat } = req.body;
 
-    const nama = document.getElementById('nama_sekolah').value;
-    const alamat = document.getElementById('alamat').value;
-
-    try {
-        const res = await fetch('/api/sekolah', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nama, alamat })
+    // Validasi input
+    if (!nama_sekolah || !alamat) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Nama sekolah dan alamat wajib diisi!' 
         });
-
-        if (res.ok) {
-            alert('Sekolah berhasil ditambahkan!');
-            location.reload(); // Refresh tabel
-        } else {
-            alert('Gagal menyimpan data.');
-        }
-    } catch (err) {
-        console.error(err);
-        alert('Terjadi kesalahan koneksi.');
     }
+    const query = 'INSERT INTO sekolah (nama_sekolah, alamat) VALUES (?, ?)';
+    
+    db.query(query, [nama_sekolah, alamat], (err, result) => {
+        if (err) {
+            console.error('Error Database:', err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Gagal menyimpan data ke database.' 
+            });
+        }
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Data sekolah berhasil ditambahkan!',
+            data: { id: result.insertId, nama_sekolah, alamat }
+        });
+    });
+});
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Data sekolah berhasil ditambahkan!',
+            data: { id: result.insertId, nama_sekolah, alamat }
+        });
+    });
 });
 
 app.delete('/api/sekolah/:id', async (req, res) => {
