@@ -57,7 +57,7 @@ async function initDb() {
 }
 initDb();
 
-// Login API
+// Login API (Dengan penanganan error server yang jelas)
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -73,7 +73,8 @@ app.post('/api/login', async (req, res) => {
       res.status(401).json({ success: false, error: 'Username atau password salah!' });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Login Error:", err.message);
+    res.status(500).json({ success: false, error: 'Koneksi database gagal: ' + err.message });
   }
 });
 
@@ -160,13 +161,13 @@ app.delete('/api/siswa/:id', async (req, res) => {
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
   if (!nisn) {
-    return.status(400).json({ error: 'NISN tidak valid!' });
+    return res.status(400).json({ error: 'NISN tidak valid!' });
   }
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
   try {
     const siswaRes = await pool.query('SELECT * FROM siswa WHERE nisn = $1', [nisn]);
     if (siswaRes.rows.length === 0) {
-      return.status(404).json({ error: 'Siswa dengan NISN tersebut tidak ditemukan!' });
+      return res.status(404).json({ error: 'Siswa dengan NISN tersebut tidak ditemukan!' });
     }
     const siswa = siswaRes.rows[0];
 
