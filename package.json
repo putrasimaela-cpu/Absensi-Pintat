@@ -1,9 +1,16 @@
 {
-  "name": "absensi-pintar",
-  "version": "1.0.0",
-  "main": "api/index.js",
+  "name": "si-absensi-backend",
+  "version": "2.1.0",
+  "description": "Backend Absensi Pintar dengan Node.js, Express, dan PostgreSQL",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.3"
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
   }
 }
