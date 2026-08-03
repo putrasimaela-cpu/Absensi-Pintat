@@ -1,16 +1,17 @@
 {
-  "name": "si-absensi-backend",
-  "version": "2.1.0",
-  "description": "Backend Absensi Pintar dengan Node.js, Express, dan PostgreSQL",
-  "main": "index.js",
+  "name": "presensi-qr-siswa",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "node index.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "pg": "^8.11.3",
-    "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.23.0"
+    "@neondatabase/serverless": "^0.9.0",
+    "html5-qrcode": "^2.3.8",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   }
 }
