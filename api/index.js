@@ -57,7 +57,7 @@ async function initDb() {
 }
 initDb();
 
-// Login API (Dengan penanganan error server yang jelas)
+// Login API
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -157,7 +157,7 @@ app.delete('/api/siswa/:id', async (req, res) => {
   }
 });
 
-// Scan Barcode / QR (Otomatis Hadir & Rekam Petugas Piket)
+// Scan Barcode / QR (Otomatis Hadir)
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
   if (!nisn) {
@@ -185,41 +185,48 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   }
 });
 
-// Absensi Manual
+// Absensi Manual (Untuk Ubah Status Hadir, Sakit, Izin, Tanpa Keterangan)
 app.post('/api/absensi-manual', async (req, res) => {
-  const { siswa_id, status, user_id } = req.body;
+  const { siswa_id, status, user_id, tanggal } = req.body;
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
   try {
     await pool.query(
       `INSERT INTO absensi (siswa_id, tanggal, jam_masuk, status, user_id) 
-       VALUES ($1, CURRENT_DATE, $2, $3, $4)
+       VALUES ($1, COALESCE($2::DATE, CURRENT_DATE), $3, $4, $5)
        ON CONFLICT (siswa_id, tanggal) 
        DO UPDATE SET status = EXCLUDED.status, jam_masuk = EXCLUDED.jam_masuk, user_id = EXCLUDED.user_id`,
-      [siswa_id, jamSekarang, status, user_id || null]
+      [siswa_id, tanggal || null, jamSekarang, status, user_id || null]
     );
-    res.json({ success: true, message: 'Status kehadiran berhasil disimpan!' });
+    res.json({ success: true, message: 'Status kehadiran berhasil diperbarui!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Get Rekap Harian
-app.get('/api/rekap/:sekolah_id', async (req, res) => {
+// Get Rekap Harian (Otomatis "Tanpa Keterangan" jika belum absen/scan)
+app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
     let query = `
-      SELECT a.*, s.nisn, s.nama_siswa, s.kelas, u.nama as nama_piket
-      FROM absensi a
-      JOIN siswa s ON a.siswa_id = s.id
+      SELECT 
+        s.id as siswa_id,
+        s.nisn, 
+        s.nama_siswa, 
+        s.kelas,
+        COALESCE(a.status, 'Tanpa Keterangan') as status,
+        a.jam_masuk,
+        u.nama as nama_piket
+      FROM siswa s
+      LEFT JOIN absensi a ON s.id = a.siswa_id AND a.tanggal = CURRENT_DATE
       LEFT JOIN users u ON a.user_id = u.id
-      WHERE a.tanggal = CURRENT_DATE
     `;
     let params = [];
     if (sekolahId && sekolahId !== '0') {
-      query += ` AND s.sekolah_id = $1`;
+      query += ` WHERE s.sekolah_id = $1`;
       params.push(sekolahId);
     }
-    query += ` ORDER BY a.id DESC`;
+    query += ` ORDER BY s.kelas, s.nama_siswa ASC`;
+
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
@@ -227,7 +234,7 @@ app.get('/api/rekap/:sekolah_id', async (req, res) => {
   }
 });
 
-// Get Akumulasi Rekap Excel (Dengan Nama Guru Piket & Akumulasi Kehadiran)
+// Get Akumulasi Rekap Excel
 app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
@@ -290,7 +297,6 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// Admin Mengubah / Mereset Sandi Pengguna Lain
 app.put('/api/admin/reset-password/:id', async (req, res) => {
   const userId = req.params.id;
   const { username, password } = req.body;
