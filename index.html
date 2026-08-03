@@ -3,69 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Sistem Absensi</title>
+  <title>Scanner Presensi QR Code</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    .login-card { background: #fff; border-radius: 10px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
-    h2 { margin-bottom: 5px; color: #333; }
-    p { color: #666; margin-bottom: 20px; font-size: 14px; }
-    .form-group { margin-bottom: 15px; text-align: left; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; color: #444; }
-    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-    button { width: 100%; padding: 10px; background: #0d6efd; border: none; border-radius: 5px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 10px; }
-    button:hover { background: #0b5ed7; }
-    #errorMsg { color: #dc3545; font-size: 13px; margin-top: 15px; font-weight: bold; }
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f6f9; }
+    .card { background: white; max-width: 450px; margin: auto; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+    #status { margin-top: 15px; font-weight: bold; font-size: 1.1em; }
+    .nav-btn { display: inline-block; margin-top: 15px; color: #0070f3; text-decoration: none; }
   </style>
 </head>
 <body>
 
-<div class="login-card">
-  <h2>Sistem Absensi</h2>
-  <p>Masukan Akun Pengguna</p>
-  
-  <form id="loginForm">
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="username" required placeholder="Masukkan username">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="password" required placeholder="Masukkan password">
-    </div>
-    <button type="submit">Masuk</button>
-  </form>
-  
-  <div id="errorMsg"></div>
+<div class="card">
+  <h2>Scanner Presensi Siswa</h2>
+  <div id="reader"></div>
+  <p id="status">Arahkan QR Code ke kamera...</p>
+  <a href="/dashboard" class="nav-btn">Lihat Dashboard Presensi &rarr;</a>
 </div>
 
 <script>
-  document.getElementById('loginForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const errorMsg = document.getElementById('errorMsg');
-    
-    errorMsg.innerText = "Menghubungkan ke server...";
+  let isProcessing = false;
 
-    fetch('/api/login', {
+  function onScanSuccess(decodedText) {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    const statusEl = document.getElementById('status');
+    statusEl.innerText = "Memproses: " + decodedText + "...";
+    statusEl.style.color = "blue";
+
+    fetch('/api/presensi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ nis: decodedText })
     })
-    .then(response => response.json().then(data => ({ status: response.status, body: data })))
-    .then(res => {
-      if (res.status === 200 && res.body.success) {
-        localStorage.setItem('userSession', JSON.stringify(res.body.user));
-        window.location.href = 'dashboard.html';
-      } else {
-        errorMsg.innerText = res.body.error || 'Username atau password salah!';
-      }
+    .then(res => res.json())
+    .then(data => {
+      statusEl.innerText = data.message;
+      statusEl.style.color = data.success ? "green" : "red";
     })
     .catch(err => {
-      console.error(err);
-      errorMsg.innerText = 'Gagal terhubung ke server.';
+      statusEl.innerText = "Terjadi kesalahan sistem";
+      statusEl.style.color = "red";
+    })
+    .finally(() => {
+      // Tunggu 3 detik sebelum mengizinkan scan berikutnya
+      setTimeout(() => { isProcessing = false; }, 3000);
     });
-  });
+  }
+
+  const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } });
+  html5QrcodeScanner.render(onScanSuccess);
 </script>
 
 </body>
