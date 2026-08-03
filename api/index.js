@@ -404,14 +404,21 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
   }
 });
 
+// API Tambah Pengguna dengan Validasi Hak Akses (Operator hanya boleh tambah GURU_PIKET)
 app.post('/api/users', async (req, res) => {
-  const { username, password, nama, role, sekolah_id } = req.body;
+  const { username, password, nama, role, sekolah_id, creator_role } = req.body;
+  
   try {
+    // Validasi Sisi Backend: Jika yang membuat adalah operator, paksa/pastikan role hanya GURU_PIKET
+    if (creator_role === 'OPERATOR' && role !== 'GURU_PIKET') {
+      return res.status(403).json({ success: false, error: 'Akses ditolak! Operator hanya diizinkan menambahkan Guru Piket.' });
+    }
+
     await pool.query(
       `INSERT INTO users (username, password, nama, role, sekolah_id) VALUES ($1, $2, $3, $4, $5)`,
       [username, password, nama, role, sekolah_id || null]
     );
-    res.json({ success: true, message: 'Pengguna berhasil ditambahkan!' });
+    res.json({ success: true, message: 'Pengguna / Guru Piket berhasil ditambahkan!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
