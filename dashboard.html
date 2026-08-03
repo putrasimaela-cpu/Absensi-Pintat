@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sistem Absensi Multi Sekolah</title>
+    <title>Absensi Pintar - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
@@ -11,21 +11,24 @@
 
     <div class="flex h-screen overflow-hidden">
         <!-- SIDEBAR -->
-        <div class="w-64 bg-indigo-900 text-white flex flex-col justify-between hidden md:flex">
+        <div class="w-64 bg-gray-900 text-white flex flex-col justify-between hidden md:flex">
             <div>
-                <div class="p-5 text-2xl font-bold tracking-wider border-b border-indigo-800">
-                    SI-Absensi Multi
+                <div class="p-5 text-xl font-bold tracking-wider border-b border-gray-800 flex items-center space-x-2">
+                    <span>🔲 Absensi Pintar</span>
                 </div>
-                <nav class="mt-5 px-4 space-y-2">
-                    <a href="#" onclick="switchTab('sekolah')" id="nav-sekolah" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">🏫 Manajemen Sekolah</a>
-                    <a href="#" onclick="switchTab('siswa')" id="nav-siswa" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👨‍🎓 Data Siswa Sekolah</a>
-                    <a href="#" onclick="switchTab('absensi')" id="nav-absensi" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📋 Rekap Absensi</a>
-                    <a href="#" onclick="switchTab('scan')" id="nav-scan" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📷 Scan Kamera & QR</a>
-                    <a href="#" onclick="switchTab('users')" id="nav-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👤 Tim / Pengguna</a>
+                <nav class="mt-3 px-3 space-y-1">
+                    <a href="#" onclick="switchTab('dashboard')" id="nav-dashboard" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">📊 Dashboard</a>
+                    <a href="#" onclick="switchTab('scan')" id="nav-scan" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">📷 Scan QR / Barcode</a>
+                    <a href="#" onclick="switchTab('siswa')" id="nav-siswa" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">👥 Data Siswa Aktif</a>
+                    <a href="#" onclick="switchTab('alumni')" id="nav-alumni" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">🎓 Data Alumni</a>
+                    <a href="#" onclick="switchTab('kehadiran')" id="nav-kehadiran" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">📋 Kehadiran Hari Ini</a>
+                    <a href="#" onclick="switchTab('arsip')" id="nav-arsip" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">🗑️ Arsip & Filter Absensi</a>
+                    <a href="#" onclick="switchTab('users')" id="nav-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-800">👤 Tim / Guru Piket</a>
                 </nav>
             </div>
-            <div class="p-4 border-t border-indigo-800">
-                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition duration-200">Logout</button>
+            <div class="p-4 border-t border-gray-800">
+                <div class="mb-2 text-sm font-semibold truncate" id="nama-sekolah-sidebar">Nama Sekolah</div>
+                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition duration-200 text-sm">Logout</button>
             </div>
         </div>
 
@@ -35,76 +38,52 @@
                 <div class="flex items-center space-x-4">
                     <img id="logo-sekolah" src="" alt="Logo" class="h-10 w-10 object-contain hidden">
                     <div>
-                        <h1 id="nama-sekolah-title" class="text-xl font-bold text-gray-800">Dashboard Utama</h1>
-                        <p class="text-sm text-gray-500" id="user-info-text">Memuat profil...</p>
+                        <h1 class="text-lg font-bold text-gray-800">Dashboard <span id="nama-sekolah-title" class="text-sm font-normal text-gray-500"></span></h1>
+                        <p class="text-xs text-gray-500" id="user-info-text">Memuat profil...</p>
                     </div>
                 </div>
                 <button onclick="logout()" class="md:hidden bg-red-600 text-white px-3 py-1 rounded text-sm">Logout</button>
             </header>
 
             <main class="p-6">
-                <!-- TAB SEKOLAH -->
-                <div id="tab-sekolah" class="tab-content space-y-6">
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Tambah Sekolah & Pembagian Pekerjaan Operator</h2>
-                        <form id="form-tambah-sekolah" onsubmit="tambahSekolah(event)" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Sekolah</label>
-                                    <input type="text" id="nama_sekolah" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">URL Logo / Base64</label>
-                                    <input type="text" id="logo" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="https://...">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Alamat Sekolah</label>
-                                <textarea id="alamat" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
-                            </div>
-                            <hr class="my-4">
-                            <h3 class="font-semibold text-gray-600">Akun Petugas / Operator Khusus Sekolah Ini</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Username Login</label>
-                                    <input type="text" id="admin_username" required class="w-full px-3 py-2 border rounded-lg" placeholder="contoh: sman1_piket">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Password Login</label>
-                                    <input type="password" id="admin_password" required class="w-full px-3 py-2 border rounded-lg">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Petugas</label>
-                                    <input type="text" id="admin_nama" class="w-full px-3 py-2 border rounded-lg" placeholder="Nama Penanggung Jawab">
-                                </div>
-                            </div>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mt-2">Simpan Sekolah & Tugas</button>
-                        </form>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Daftar Wilayah Pekerjaan Sekolah</h2>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Sekolah</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabel-sekolah-body" class="bg-white divide-y divide-gray-200"></tbody>
-                            </table>
+                <!-- TAB DASHBOARD -->
+                <div id="tab-dashboard" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-blue-600 text-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-semibold">Total Hadir Hari Ini</h3>
+                            <p id="stat-hadir" class="text-3xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="bg-green-600 text-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-semibold">Total Siswa Aktif</h3>
+                            <p id="stat-siswa" class="text-3xl font-bold mt-2">0</p>
+                        </div>
+                        <div class="bg-cyan-500 text-white p-6 rounded-lg shadow">
+                            <h3 class="text-sm font-semibold">Total Alumni</h3>
+                            <p id="stat-alumni" class="text-3xl font-bold mt-2">0</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB SISWA -->
+                <!-- TAB SCAN -->
+                <div id="tab-scan" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow max-w-xl mx-auto text-center">
+                        <h2 class="text-xl font-bold text-gray-700 mb-2">Scan QR Code / Barcode Siswa</h2>
+                        <p class="text-sm text-gray-500 mb-4">Arahkan kamera ke QR Code NISN siswa aktif untuk mencatat kehadiran otomatis hari ini.</p>
+                        <div id="reader" class="w-full mb-4 rounded-lg overflow-hidden border"></div>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="input-nisn-scan" placeholder="Ketik NISN..." class="flex-1 px-4 py-2 border rounded-lg">
+                            <button onclick="prosesScanManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold">Proses</button>
+                        </div>
+                        <div id="scan-result" class="mt-4 p-4 rounded-lg hidden"></div>
+                    </div>
+                </div>
+
+                <!-- TAB SISWA AKTIF -->
                 <div id="tab-siswa" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
                         <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-lg font-bold text-gray-700">Manajemen Siswa Berdasarkan Sekolah</h2>
-                            <button onclick="bukaModalTambahSiswa()" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded">＋ Tambah Siswa Baru</button>
+                            <h2 class="text-lg font-bold text-gray-700">Daftar Siswa Aktif</h2>
+                            <button onclick="bukaModalTambahSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded">+ Tambah Siswa</button>
                         </div>
                         <div class="flex gap-4 mb-4">
                             <input type="text" id="search-siswa" placeholder="Cari nama / NISN..." class="px-3 py-2 border rounded-lg w-1/3" oninput="loadSiswa()">
@@ -116,8 +95,8 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NISN</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Siswa</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No WA Ortu</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Ortu</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi / Lulus</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabel-siswa-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -126,21 +105,44 @@
                     </div>
                 </div>
 
-                <!-- TAB ABSENSI -->
-                <div id="tab-absensi" class="tab-content hidden space-y-6">
+                <!-- TAB ALUMNI -->
+                <div id="tab-alumni" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Rekap Absensi Pekerjaan Sekolah</h2>
-                        <div class="flex gap-4 mb-4">
+                        <h2 class="text-lg font-bold text-gray-700 mb-1">Data Alumni Permanen</h2>
+                        <p class="text-xs text-gray-500 mb-4">Daftar siswa yang dinyatakan lulus otomatis masuk ke menu ini secara permanen.</p>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Lulus</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NISN</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Siswa</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas Terakhir</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel-alumni-body" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB KEHADIRAN HARI INI -->
+                <div id="tab-kehadiran" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-lg font-bold text-gray-700 mb-4">Input & Ubah Kehadiran Hari Ini</h2>
+                        <div class="flex gap-4 mb-4 items-center">
                             <input type="date" id="filter-tanggal" class="px-3 py-2 border rounded-lg" onchange="loadRekap()">
                         </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NISN</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Siswa</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Masuk</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status Kehadiran</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Petugas Piket</th>
                                     </tr>
                                 </thead>
@@ -150,23 +152,59 @@
                     </div>
                 </div>
 
-                <!-- TAB SCAN KAMERA -->
-                <div id="tab-scan" class="tab-content hidden space-y-6">
-                    <div class="bg-white p-6 rounded-lg shadow max-w-xl mx-auto text-center">
-                        <h2 class="text-xl font-bold text-gray-700 mb-2">Scan Kamera QR Code Kehadiran</h2>
-                        <div id="reader" class="w-full mb-4 rounded-lg overflow-hidden border"></div>
-                        <div class="flex gap-2 mb-4">
-                            <input type="text" id="input-nisn-scan" placeholder="Ketik NISN..." class="flex-1 px-4 py-2 border rounded-lg">
-                            <button onclick="prosesScanManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold">Proses</button>
+                <!-- TAB ARSIP ABSENSI -->
+                <div id="tab-arsip" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h2 class="text-lg font-bold text-gray-700 mb-1">Arsip & Riwayat Absensi Permanen</h2>
+                        <div class="flex gap-4 mb-4 items-center mt-3">
+                            <input type="date" id="filter-arsip-tanggal" class="px-3 py-2 border rounded-lg" onchange="loadArsip()">
                         </div>
-                        <div id="scan-result" class="mt-4 p-4 rounded-lg hidden"></div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal Arsip</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NISN</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Siswa</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabel-arsip-body" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <!-- TAB USERS -->
+                <!-- TAB USERS / GURU PIKET -->
                 <div id="tab-users" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Tim & Pembagian Pengguna Sekolah</h2>
+                        <h2 class="text-lg font-bold text-gray-700 mb-4" id="title-form-user">Tambah Pengguna / Guru Piket Baru</h2>
+                        <form id="form-tambah-user" onsubmit="tambahUser(event)" class="space-y-4 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                                    <input type="text" id="new_username" required class="w-full px-3 py-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                    <input type="password" id="new_password" required class="w-full px-3 py-2 border rounded-lg">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
+                                    <input type="text" id="new_nama" required class="w-full px-3 py-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Peran (Role)</label>
+                                    <select id="new_role" class="w-full px-3 py-2 border rounded-lg"></select>
+                                </div>
+                            </div>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">Simpan Pengguna</button>
+                        </form>
+
+                        <h3 class="font-semibold text-gray-600 mb-3">Daftar Tim / Petugas Sekolah</h3>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -174,6 +212,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Lengkap</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peran / Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabel-users-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -188,10 +227,10 @@
     <!-- MODAL TAMBAH SISWA -->
     <div id="modal-siswa" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-lg w-full max-w-md space-y-4">
-            <h3 class="text-lg font-bold text-gray-800">Tambah Data Siswa</h3>
+            <h3 class="text-lg font-bold text-gray-800">Tambah Data Siswa Aktif</h3>
             <form id="form-tambah-siswa" onsubmit="simpanSiswa(event)" class="space-y-3">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700">NISN / QR Code</label>
+                    <label class="block text-sm font-bold text-gray-700">NISN / Barcode</label>
                     <input type="text" id="nisn" required class="w-full px-3 py-2 border rounded">
                 </div>
                 <div>
@@ -203,7 +242,7 @@
                     <input type="text" id="kelas" required class="w-full px-3 py-2 border rounded">
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-gray-700">No WhatsApp Ortu (Pisahkan koma jika banyak)</label>
+                    <label class="block text-sm font-bold text-gray-700">No WhatsApp Ortu (Pisahkan koma)</label>
                     <input type="text" id="wa_ortu" placeholder="08123456789" required class="w-full px-3 py-2 border rounded">
                 </div>
                 <div class="flex justify-end space-x-2 pt-2">
@@ -215,7 +254,8 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000'; // Mengarahkan langsung ke backend lokal
+        // Ganti URL ini dengan URL backend online Anda (misal dari Render / Railway)
+        const API_URL = 'http://localhost:3000'; 
         let currentUser = null;
         let html5QrCode = null;
 
@@ -229,28 +269,56 @@
             document.getElementById('user-info-text').innerText = `${currentUser.nama} (${currentUser.role})`;
             if (currentUser.nama_sekolah) {
                 document.getElementById('nama-sekolah-title').innerText = currentUser.nama_sekolah;
+                document.getElementById('nama-sekolah-sidebar').innerText = currentUser.nama_sekolah;
             }
             if (currentUser.logo) {
                 const logoImg = document.getElementById('logo-sekolah');
                 logoImg.src = currentUser.logo;
                 logoImg.classList.remove('hidden');
             }
-            switchTab('sekolah');
+
+            const roleSelect = document.getElementById('new_role');
+            if (currentUser.role === 'ADMIN') {
+                roleSelect.innerHTML = `
+                    <option value="OPERATOR">Operator Sekolah</option>
+                    <option value="GURU_PIKET">Guru Piket</option>
+                `;
+            } else if (currentUser.role === 'OPERATOR') {
+                roleSelect.innerHTML = `
+                    <option value="GURU_PIKET">Guru Piket</option>
+                `;
+            }
+
+            switchTab('dashboard');
         });
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if (targetTab) targetTab.classList.remove('hidden');
 
             if (html5QrCode && tabName !== 'scan') {
                 html5QrCode.stop().catch(() => {});
             }
 
-            if (tabName === 'sekolah') loadSekolah();
-            if (tabName === 'siswa') loadSiswa();
-            if (tabName === 'absensi') loadRekap();
+            if (tabName === 'dashboard') loadDashboard();
             if (tabName === 'scan') initKameraScanner();
+            if (tabName === 'siswa') loadSiswa();
+            if (tabName === 'alumni') loadAlumni();
+            if (tabName === 'kehadiran') loadRekap();
+            if (tabName === 'arsip') loadArsip();
             if (tabName === 'users') loadUsers();
+        }
+
+        async function loadDashboard() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            try {
+                const res = await fetch(`${API_URL}/api/stats/${sekolahId}`);
+                const data = await res.json();
+                document.getElementById('stat-hadir').innerText = data.hadir_hari_ini || 0;
+                document.getElementById('stat-siswa').innerText = data.total_siswa_aktif || 0;
+                document.getElementById('stat-alumni').innerText = data.total_alumni || 0;
+            } catch (err) { console.error(err); }
         }
 
         function initKameraScanner() {
@@ -298,57 +366,6 @@
             document.getElementById('input-nisn-scan').value = '';
         }
 
-        async function loadSekolah() {
-            try {
-                const res = await fetch(`${API_URL}/api/sekolah`);
-                const data = await res.json();
-                const tbody = document.getElementById('tabel-sekolah-body');
-                tbody.innerHTML = '';
-                data.forEach(s => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${s.nama_sekolah}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.alamat || '-'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><button onclick="hapusSekolah(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button></td>
-                        </tr>
-                    `;
-                });
-            } catch (err) { console.error(err); }
-        }
-
-        async function tambahSekolah(event) {
-            event.preventDefault();
-            const payload = {
-                nama_sekolah: document.getElementById('nama_sekolah').value,
-                alamat: document.getElementById('alamat').value,
-                logo: document.getElementById('logo').value,
-                admin_username: document.getElementById('admin_username').value,
-                admin_password: document.getElementById('admin_password').value,
-                admin_nama: document.getElementById('admin_nama').value
-            };
-            try {
-                const res = await fetch(`${API_URL}/api/sekolah`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-                if (res.ok && result.success) {
-                    alert('Sekolah berhasil diatur!');
-                    document.getElementById('form-tambah-sekolah').reset();
-                    loadSekolah();
-                } else { alert('Gagal: ' + result.error); }
-            } catch (err) { alert('Kesalahan koneksi ke server.'); }
-        }
-
-        async function hapusSekolah(id) {
-            if (!confirm('Yakin ingin menghapus sekolah?')) return;
-            try {
-                await fetch(`${API_URL}/api/sekolah/${id}`, { method: 'DELETE' });
-                loadSekolah();
-            } catch (err) { alert('Terjadi kesalahan.'); }
-        }
-
         async function loadSiswa() {
             const sekolahId = currentUser.sekolah_id || 0;
             const search = document.getElementById('search-siswa').value;
@@ -358,14 +375,16 @@
                 const tbody = document.getElementById('tabel-siswa-body');
                 tbody.innerHTML = '';
                 data.forEach(s => {
-                    const waList = Array.isArray(s.wa_ortu) ? s.wa_ortu.join(', ') : (s.wa_ortu || '-');
                     tbody.innerHTML += `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nisn}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nama_siswa}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.kelas}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${waList}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><button onclick="hapusSiswa(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.nama_ortu || '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                <button onclick="lulusSiswa(${s.id})" class="text-blue-600 hover:text-blue-900">Luluskan</button>
+                                <button onclick="hapusSiswa(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button>
+                            </td>
                         </tr>
                     `;
                 });
@@ -373,10 +392,6 @@
         }
 
         function bukaModalTambahSiswa() {
-            if (!currentUser.sekolah_id) {
-                alert('Akun Anda tidak terikat pada sekolah tertentu.');
-                return;
-            }
             document.getElementById('modal-siswa').classList.remove('hidden');
         }
 
@@ -412,12 +427,44 @@
             } catch (err) { alert('Kesalahan koneksi ke server.'); }
         }
 
+        async function lulusSiswa(id) {
+            if (!confirm('Pindahkan siswa ini ke data alumni?')) return;
+            try {
+                await fetch(`${API_URL}/api/siswa/lulus/${id}`, { method: 'POST' });
+                loadSiswa();
+            } catch (err) { alert('Terjadi kesalahan.'); }
+        }
+
         async function hapusSiswa(id) {
             if (!confirm('Yakin ingin menghapus siswa ini?')) return;
             try {
                 await fetch(`${API_URL}/api/siswa/${id}`, { method: 'DELETE' });
                 loadSiswa();
             } catch (err) { alert('Gagal menghapus siswa.'); }
+        }
+
+        async function loadAlumni() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            try {
+                const res = await fetch(`${API_URL}/api/alumni/${sekolahId}`);
+                const data = await res.json();
+                const tbody = document.getElementById('tabel-alumni-body');
+                tbody.innerHTML = '';
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Belum ada data alumni.</td></tr>';
+                    return;
+                }
+                data.forEach(a => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${a.tanggal_lulus ? a.tanggal_lulus.split('T')[0] : '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${a.nisn}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${a.nama_siswa}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${a.kelas}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) { console.error(err); }
         }
 
         async function loadRekap() {
@@ -431,11 +478,39 @@
                 data.forEach(r => {
                     tbody.innerHTML += `
                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${r.tanggal ? r.tanggal.split('T')[0] : '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.nisn}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${r.nama_siswa}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${r.kelas}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">${r.status}</span></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${r.jam_masuk || '-'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${r.nama_piket || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function loadArsip() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            const tanggal = document.getElementById('filter-arsip-tanggal').value;
+            try {
+                const res = await fetch(`${API_URL}/api/arsip/${sekolahId}?tanggal=${tanggal}`);
+                const data = await res.json();
+                const tbody = document.getElementById('tabel-arsip-body');
+                tbody.innerHTML = '';
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Tidak ada arsip.</td></tr>';
+                    return;
+                }
+                data.forEach(a => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${a.tanggal_arsip ? a.tanggal_arsip.split('T')[0] : '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${a.nisn}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${a.nama_siswa}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${a.kelas}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${a.status}</td>
                         </tr>
                     `;
                 });
@@ -454,11 +529,59 @@
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${u.username}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${u.nama}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${u.role}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">${u.role}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="hapusUser(${u.id})" class="text-red-600 hover:text-red-900">Hapus</button>
+                            </td>
                         </tr>
                     `;
                 });
             } catch (err) { console.error(err); }
+        }
+
+        async function tambahUser(event) {
+            event.preventDefault();
+            const payload = {
+                username: document.getElementById('new_username').value,
+                password: document.getElementById('new_password').value,
+                nama: document.getElementById('new_nama').value,
+                role: document.getElementById('new_role').value,
+                sekolah_id: currentUser.sekolah_id,
+                creator_role: currentUser.role
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/api/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    alert('Pengguna berhasil ditambahkan!');
+                    document.getElementById('form-tambah-user').reset();
+                    loadUsers();
+                } else {
+                    alert('Gagal: ' + result.error);
+                }
+            } catch (err) {
+                alert('Kesalahan koneksi ke server.');
+            }
+        }
+
+        async function hapusUser(id) {
+            if (!confirm('Yakin ingin menghapus pengguna ini?')) return;
+            try {
+                const res = await fetch(`${API_URL}/api/users/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok && result.success) {
+                    loadUsers();
+                } else {
+                    alert('Gagal menghapus: ' + result.error);
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi.');
+            }
         }
 
         function logout() {
