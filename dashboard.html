@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Sistem Absensi</title>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Html5-Qrcode Scanner Library -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -57,7 +54,6 @@
   <!-- MAIN CONTENT -->
   <div class="main-content">
     
-    <!-- TOP HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
       <h5 class="m-0 text-dark fw-bold" id="pageTitle">Dashboard</h5>
       <span class="text-muted" id="sekolahInfoLabel">Memuat...</span>
@@ -130,15 +126,20 @@
     <!-- TAB 4: REKAP -->
     <div id="tab-rekap" class="content-tab" style="display:none;">
       <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Rekapitulasi Kehadiran Harian & Ubah Status</h4>
-          <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Download Rekap Akumulasi</button>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4>Rekapitulasi Kehadiran Harian & Tanggal</h4>
+          <div class="d-flex align-items-center gap-2">
+            <label for="filterTanggal" class="form-label m-0 fw-bold">Tanggal:</label>
+            <input type="date" id="filterTanggal" class="form-control form-control-sm" onchange="loadRekap()">
+            <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Download Rekap</button>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-bordered align-middle">
             <thead>
               <tr>
                 <th>No</th>
+                <th>Tanggal</th>
                 <th>NISN</th>
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
@@ -148,7 +149,7 @@
               </tr>
             </thead>
             <tbody id="tabelRekapBody">
-              <tr><td colspan="7" class="text-center">Memuat rekap hari ini...</td></tr>
+              <tr><td colspan="8" class="text-center">Memuat rekap...</td></tr>
             </tbody>
           </table>
         </div>
@@ -301,7 +302,6 @@
     </div>
   </div>
 
-  <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
@@ -318,6 +318,12 @@
       document.getElementById('menuUser').style.display = 'block';
       document.getElementById('menuSekolah').style.display = 'block';
     }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const today = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById('filterTanggal');
+      if(dateInput) dateInput.value = today;
+    });
 
     function switchTab(tabId, event) {
       if (event) event.preventDefault();
@@ -341,10 +347,10 @@
       window.location.href = 'index.html';
     }
 
-    // --- DASHBOARD DATA ---
     function loadDashboardStats() {
       const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/rekap-harian/${sekolahId}`)
+      const today = new Date().toISOString().split('T')[0];
+      fetch(`/api/rekap-harian/${sekolahId}?tanggal=${today}`)
         .then(res => res.json())
         .then(data => {
           const totalHadir = data.filter(d => d.status === 'Hadir').length;
@@ -358,7 +364,6 @@
     }
     loadDashboardStats();
 
-    // --- SCANNER QR ---
     let html5QrCode = null;
     function initScanner() {
       if (html5QrCode) {
@@ -430,7 +435,6 @@
 
     function onScanFailure(error) {}
 
-    // --- DATA SISWA ---
     function loadSiswa() {
       const sekolahId = currentUser.sekolah_id || 0;
       fetch(`/api/siswa/${sekolahId}`)
@@ -488,22 +492,26 @@
       }
     }
 
-    // --- REKAP KEHADIRAN HARIAN & UBAH STATUS ---
     function loadRekap() {
       const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/rekap-harian/${sekolahId}`)
+      const tanggalPilih = document.getElementById('filterTanggal').value;
+      
+      fetch(`/api/rekap-harian/${sekolahId}?tanggal=${tanggalPilih}`)
         .then(res => res.json())
         .then(data => {
           let tbody = document.getElementById('tabelRekapBody');
           tbody.innerHTML = '';
           if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada data siswa.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data siswa.</td></tr>';
             return;
           }
           data.forEach((r, idx) => {
+            let formattedDate = r.tanggal ? r.tanggal.substring(0, 10) : tanggalPilih;
+
             tbody.innerHTML += `
               <tr>
                 <td>${idx + 1}</td>
+                <td>${formattedDate}</td>
                 <td>${r.nisn}</td>
                 <td>${r.nama_siswa}</td>
                 <td>${r.kelas}</td>
@@ -524,13 +532,15 @@
     }
 
     function ubahStatusAbsensi(siswaId, statusBaru) {
+      const tanggalPilih = document.getElementById('filterTanggal').value;
       fetch('/api/absensi-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           siswa_id: siswaId,
           status: statusBaru,
-          user_id: currentUser.id
+          user_id: currentUser.id,
+          tanggal: tanggalPilih
         })
       })
       .then(res => res.json())
@@ -545,7 +555,6 @@
       });
     }
 
-    // --- REKAP EXCEL AKUMULASI ---
     function downloadRekapExcel() {
       const sekolahId = currentUser.sekolah_id || 0;
       fetch(`/api/rekap-excel/${sekolahId}`)
@@ -564,7 +573,6 @@
         });
     }
 
-    // --- USERS MANAGEMENT ---
     function loadUsers() {
       const sekolahId = currentUser.sekolah_id || 0;
       fetch(`/api/users/${sekolahId}`)
@@ -648,7 +656,6 @@
       }
     }
 
-    // --- SEKOLAH ---
     function loadSekolah() {
       fetch('/api/sekolah')
         .then(res => res.json())
