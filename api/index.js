@@ -184,7 +184,7 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   }
 });
 
-// Absensi Manual (Ubah Status Hadir, Sakit, Izin, Tanpa Keterangan berdasarkan Tanggal)
+// Absensi Manual
 app.post('/api/absensi-manual', async (req, res) => {
   const { siswa_id, status, user_id, tanggal } = req.body;
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
@@ -202,7 +202,7 @@ app.post('/api/absensi-manual', async (req, res) => {
   }
 });
 
-// Get Rekap Harian Berdasarkan Tanggal (Otomatis "Tanpa Keterangan" jika belum ada data)
+// Get Rekap Harian Berdasarkan Tanggal
 app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const tanggalQuery = req.query.tanggal || new Date().toISOString().split('T')[0];
@@ -336,4 +336,4 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-module.exports = app;a
+module.exports = app;
