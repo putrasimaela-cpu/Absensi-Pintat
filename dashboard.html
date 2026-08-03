@@ -254,7 +254,7 @@
     </div>
 
     <script>
-        // Ganti URL ini dengan URL backend online Anda (misal dari Render / Railway)
+        // Sesuaikan URL backend Anda di sini (misal URL Vercel atau Render)
         const API_URL = 'http://localhost:3000'; 
         let currentUser = null;
         let html5QrCode = null;
@@ -262,7 +262,7 @@
         document.addEventListener("DOMContentLoaded", () => {
             const userStr = localStorage.getItem('user');
             if (!userStr) {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
                 return;
             }
             currentUser = JSON.parse(userStr);
@@ -278,15 +278,11 @@
             }
 
             const roleSelect = document.getElementById('new_role');
-            if (currentUser.role === 'ADMIN') {
-                roleSelect.innerHTML = `
-                    <option value="OPERATOR">Operator Sekolah</option>
-                    <option value="GURU_PIKET">Guru Piket</option>
-                `;
-            } else if (currentUser.role === 'OPERATOR') {
-                roleSelect.innerHTML = `
-                    <option value="GURU_PIKET">Guru Piket</option>
-                `;
+            if (currentUser.role === 'ADMIN' || currentUser.role === 'OPERATOR') {
+                roleSelect.innerHTML = `<option value="GURU_PIKET">Guru Piket</option>`;
+                if (currentUser.role === 'ADMIN') {
+                    roleSelect.innerHTML += `<option value="OPERATOR">Operator Sekolah</option>`;
+                }
             }
 
             switchTab('dashboard');
@@ -391,14 +387,8 @@
             } catch (err) { console.error(err); }
         }
 
-        function bukaModalTambahSiswa() {
-            document.getElementById('modal-siswa').classList.remove('hidden');
-        }
-
-        function tutupModalSiswa() {
-            document.getElementById('modal-siswa').classList.add('hidden');
-            document.getElementById('form-tambah-siswa').reset();
-        }
+        function bukaModalTambahSiswa() { document.getElementById('modal-siswa').classList.remove('hidden'); }
+        function tutupModalSiswa() { document.getElementById('modal-siswa').classList.add('hidden'); document.getElementById('form-tambah-siswa').reset(); }
 
         async function simpanSiswa(event) {
             event.preventDefault();
@@ -429,18 +419,12 @@
 
         async function lulusSiswa(id) {
             if (!confirm('Pindahkan siswa ini ke data alumni?')) return;
-            try {
-                await fetch(`${API_URL}/api/siswa/lulus/${id}`, { method: 'POST' });
-                loadSiswa();
-            } catch (err) { alert('Terjadi kesalahan.'); }
+            try { await fetch(`${API_URL}/api/siswa/lulus/${id}`, { method: 'POST' }); loadSiswa(); } catch (err) { alert('Terjadi kesalahan.'); }
         }
 
         async function hapusSiswa(id) {
             if (!confirm('Yakin ingin menghapus siswa ini?')) return;
-            try {
-                await fetch(`${API_URL}/api/siswa/${id}`, { method: 'DELETE' });
-                loadSiswa();
-            } catch (err) { alert('Gagal menghapus siswa.'); }
+            try { await fetch(`${API_URL}/api/siswa/${id}`, { method: 'DELETE' }); loadSiswa(); } catch (err) { alert('Gagal menghapus siswa.'); }
         }
 
         async function loadAlumni() {
@@ -561,12 +545,8 @@
                     alert('Pengguna berhasil ditambahkan!');
                     document.getElementById('form-tambah-user').reset();
                     loadUsers();
-                } else {
-                    alert('Gagal: ' + result.error);
-                }
-            } catch (err) {
-                alert('Kesalahan koneksi ke server.');
-            }
+                } else { alert('Gagal: ' + result.error); }
+            } catch (err) { alert('Kesalahan koneksi ke server.'); }
         }
 
         async function hapusUser(id) {
@@ -574,19 +554,13 @@
             try {
                 const res = await fetch(`${API_URL}/api/users/${id}`, { method: 'DELETE' });
                 const result = await res.json();
-                if (res.ok && result.success) {
-                    loadUsers();
-                } else {
-                    alert('Gagal menghapus: ' + result.error);
-                }
-            } catch (err) {
-                alert('Terjadi kesalahan koneksi.');
-            }
+                if (res.ok && result.success) { loadUsers(); } else { alert('Gagal menghapus: ' + result.error); }
+            } catch (err) { alert('Terjadi kesalahan koneksi.'); }
         }
 
         function logout() {
             localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
     </script>
 </body>
