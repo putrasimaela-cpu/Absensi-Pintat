@@ -73,7 +73,6 @@ app.post('/api/login', async (req, res) => {
       res.status(401).json({ success: false, error: 'Username atau password salah!' });
     }
   } catch (err) {
-    console.error("Login Error:", err.message);
     res.status(500).json({ success: false, error: 'Koneksi database gagal: ' + err.message });
   }
 });
@@ -185,7 +184,7 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   }
 });
 
-// Absensi Manual (Untuk Ubah Status Hadir, Sakit, Izin, Tanpa Keterangan)
+// Absensi Manual (Ubah Status Hadir, Sakit, Izin, Tanpa Keterangan berdasarkan Tanggal)
 app.post('/api/absensi-manual', async (req, res) => {
   const { siswa_id, status, user_id, tanggal } = req.body;
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
@@ -203,9 +202,10 @@ app.post('/api/absensi-manual', async (req, res) => {
   }
 });
 
-// Get Rekap Harian (Otomatis "Tanpa Keterangan" jika belum absen/scan)
+// Get Rekap Harian Berdasarkan Tanggal (Otomatis "Tanpa Keterangan" jika belum ada data)
 app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
+  const tanggalQuery = req.query.tanggal || new Date().toISOString().split('T')[0];
   try {
     let query = `
       SELECT 
@@ -214,16 +214,32 @@ app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
         s.nama_siswa, 
         s.kelas,
         COALESCE(a.status, 'Tanpa Keterangan') as status,
+        COALESCE(a.tanggal, $2::DATE) as tanggal,
         a.jam_masuk,
         u.nama as nama_piket
       FROM siswa s
-      LEFT JOIN absensi a ON s.id = a.siswa_id AND a.tanggal = CURRENT_DATE
+      LEFT JOIN absensi a ON s.id = a.siswa_id AND a.tanggal = $2::DATE
       LEFT JOIN users u ON a.user_id = u.id
     `;
-    let params = [];
+    let params = [sekolahId, tanggalQuery];
     if (sekolahId && sekolahId !== '0') {
       query += ` WHERE s.sekolah_id = $1`;
-      params.push(sekolahId);
+    } else {
+      query = `
+        SELECT 
+          s.id as siswa_id,
+          s.nisn, 
+          s.nama_siswa, 
+          s.kelas,
+          COALESCE(a.status, 'Tanpa Keterangan') as status,
+          COALESCE(a.tanggal, $1::DATE) as tanggal,
+          a.jam_masuk,
+          u.nama as nama_piket
+        FROM siswa s
+        LEFT JOIN absensi a ON s.id = a.siswa_id AND a.tanggal = $1::DATE
+        LEFT JOIN users u ON a.user_id = u.id
+      `;
+      params = [tanggalQuery];
     }
     query += ` ORDER BY s.kelas, s.nama_siswa ASC`;
 
@@ -320,4 +336,4 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-module.exports = app;
+module.exports = app;a
