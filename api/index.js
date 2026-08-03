@@ -88,26 +88,29 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get Sekolah
-app.get('/api/sekolah', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM sekolah ORDER BY id DESC');
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+document.getElementById('formTambahSekolah').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-app.post('/api/sekolah', async (req, res) => {
-  const { nama_sekolah, alamat, logo } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO sekolah (nama_sekolah, alamat, logo) VALUES ($1, $2, $3)',
-      [nama_sekolah, alamat, logo]
-    );
-    res.json({ success: true, message: 'Sekolah berhasil ditambahkan!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    const nama = document.getElementById('nama_sekolah').value;
+    const alamat = document.getElementById('alamat').value;
+
+    try {
+        const res = await fetch('/api/sekolah', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama, alamat })
+        });
+
+        if (res.ok) {
+            alert('Sekolah berhasil ditambahkan!');
+            location.reload(); // Refresh tabel
+        } else {
+            alert('Gagal menyimpan data.');
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Terjadi kesalahan koneksi.');
+    }
 });
 
 app.delete('/api/sekolah/:id', async (req, res) => {
