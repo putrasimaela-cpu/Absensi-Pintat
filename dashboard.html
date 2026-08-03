@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sistem Absensi Terpusat Sekolah</title>
-    <!-- Tailwind CSS -->
+    <title>Dashboard - Sistem Absensi Multi Sekolah</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Library Kamera Scanner QR Code -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
@@ -33,7 +31,6 @@
 
         <!-- MAIN CONTENT -->
         <div class="flex-1 flex flex-col overflow-y-auto">
-            <!-- TOPBAR -->
             <header class="bg-white shadow p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                     <img id="logo-sekolah" src="" alt="Logo" class="h-10 w-10 object-contain hidden">
@@ -45,9 +42,7 @@
                 <button onclick="logout()" class="md:hidden bg-red-600 text-white px-3 py-1 rounded text-sm">Logout</button>
             </header>
 
-            <!-- CONTENT AREA -->
             <main class="p-6">
-
                 <!-- TAB SEKOLAH -->
                 <div id="tab-sekolah" class="tab-content space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -72,18 +67,18 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-gray-700 text-sm font-bold mb-2">Username Login</label>
-                                    <input type="text" id="admin_username" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="contoh: sman1_piket">
+                                    <input type="text" id="admin_username" required class="w-full px-3 py-2 border rounded-lg" placeholder="contoh: sman1_piket">
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 text-sm font-bold mb-2">Password Login</label>
-                                    <input type="password" id="admin_password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <input type="password" id="admin_password" required class="w-full px-3 py-2 border rounded-lg">
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 text-sm font-bold mb-2">Nama Petugas</label>
-                                    <input type="text" id="admin_nama" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Nama Penanggung Jawab">
+                                    <input type="text" id="admin_nama" class="w-full px-3 py-2 border rounded-lg" placeholder="Nama Penanggung Jawab">
                                 </div>
                             </div>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none mt-2">Simpan Sekolah & Tugas</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded mt-2">Simpan Sekolah & Tugas</button>
                         </form>
                     </div>
 
@@ -159,15 +154,11 @@
                 <div id="tab-scan" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow max-w-xl mx-auto text-center">
                         <h2 class="text-xl font-bold text-gray-700 mb-2">Scan Kamera QR Code Kehadiran</h2>
-                        <p class="text-sm text-gray-500 mb-4">Pindai kartu pelajar siswa untuk mengirim rekap real-time.</p>
-                        
                         <div id="reader" class="w-full mb-4 rounded-lg overflow-hidden border"></div>
-
                         <div class="flex gap-2 mb-4">
-                            <input type="text" id="input-nisn-scan" placeholder="Ketik NISN..." class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <button onclick="prosesScanManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition">Proses</button>
+                            <input type="text" id="input-nisn-scan" placeholder="Ketik NISN..." class="flex-1 px-4 py-2 border rounded-lg">
+                            <button onclick="prosesScanManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold">Proses</button>
                         </div>
-
                         <div id="scan-result" class="mt-4 p-4 rounded-lg hidden"></div>
                     </div>
                 </div>
@@ -190,7 +181,6 @@
                         </div>
                     </div>
                 </div>
-
             </main>
         </div>
     </div>
@@ -200,7 +190,6 @@
         <div class="bg-white p-6 rounded-lg w-full max-w-md space-y-4">
             <h3 class="text-lg font-bold text-gray-800">Tambah Data Siswa</h3>
             <form id="form-tambah-siswa" onsubmit="simpanSiswa(event)" class="space-y-3">
-                <input type="hidden" id="siswa_sekolah_id">
                 <div>
                     <label class="block text-sm font-bold text-gray-700">NISN / QR Code</label>
                     <input type="text" id="nisn" required class="w-full px-3 py-2 border rounded">
@@ -215,7 +204,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700">No WhatsApp Ortu (Pisahkan koma jika banyak)</label>
-                    <input type="text" id="wa_ortu" placeholder="08123456789, 08987654321" required class="w-full px-3 py-2 border rounded">
+                    <input type="text" id="wa_ortu" placeholder="08123456789" required class="w-full px-3 py-2 border rounded">
                 </div>
                 <div class="flex justify-end space-x-2 pt-2">
                     <button type="button" onclick="tutupModalSiswa()" class="bg-gray-400 text-white px-4 py-2 rounded">Batal</button>
@@ -226,6 +215,7 @@
     </div>
 
     <script>
+        const API_URL = 'http://localhost:3000'; // Mengarahkan langsung ke backend lokal
         let currentUser = null;
         let html5QrCode = null;
 
@@ -245,29 +235,8 @@
                 logoImg.src = currentUser.logo;
                 logoImg.classList.remove('hidden');
             }
-
             switchTab('sekolah');
         });
-
-        function playBeep(success = true) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(success ? 800 : 300, audioCtx.currentTime); 
-                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + (success ? 0.15 : 0.4));
-            } catch (e) {
-                console.warn("Audio Context diblokir browser:", e);
-            }
-        }
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -288,17 +257,13 @@
             if (!html5QrCode) {
                 html5QrCode = new Html5Qrcode("reader");
             }
-            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (errorMessage) => {}).catch(err => {
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {}).catch(err => {
                 console.error("Gagal memulai kamera:", err);
             });
         }
 
         async function onScanSuccess(decodedText) {
-            if(html5QrCode) {
-                await html5QrCode.stop().catch(() => {});
-            }
+            if(html5QrCode) { await html5QrCode.stop().catch(() => {}); }
             await kirimAbsenServer(decodedText.trim());
             setTimeout(() => initKameraScanner(), 3000);
         }
@@ -311,40 +276,31 @@
         async function kirimAbsenServer(nisn) {
             const resultDiv = document.getElementById('scan-result');
             try {
-                const res = await fetch('/api/absensi-barcode-nisn', {
+                const res = await fetch(`${API_URL}/api/absensi-barcode-nisn`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nisn: nisn, pendaftar_id: currentUser.id })
                 });
                 const result = await res.json();
-
                 resultDiv.classList.remove('hidden');
-                if (result.success) {
-                    playBeep(true);
+                if (res.ok && result.success) {
                     resultDiv.className = "mt-4 p-4 rounded-lg bg-green-100 text-green-800 border border-green-300";
-                    resultDiv.innerHTML = `
-                        <p class="font-bold text-lg">✅ Absensi Berhasil & WA Terkirim!</p>
-                        <p>Nama: <b>${result.nama_siswa}</b></p>
-                        <p>Kelas: <b>${result.kelas}</b></p>
-                        <p>Jam Masuk: <b>${result.jam}</b></p>
-                    `;
+                    resultDiv.innerHTML = `<p class="font-bold text-lg">✅ Absensi Berhasil & WA Terkirim!</p><p>Nama: <b>${result.nama_siswa}</b></p><p>Kelas: <b>${result.kelas}</b></p>`;
                 } else {
-                    playBeep(false);
                     resultDiv.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
-                    resultDiv.innerHTML = `<p class="font-bold">❌ Gagal: ${result.error}</p>`;
+                    resultDiv.innerHTML = `<p class="font-bold">❌ Gagal: ${result.error || 'Server error'}</p>`;
                 }
             } catch (err) {
-                playBeep(false);
                 resultDiv.classList.remove('hidden');
                 resultDiv.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
-                resultDiv.innerHTML = `<p class="font-bold">❌ Terjadi kesalahan jaringan.</p>`;
+                resultDiv.innerHTML = `<p class="font-bold">❌ Kesalahan koneksi ke server.</p>`;
             }
             document.getElementById('input-nisn-scan').value = '';
         }
 
         async function loadSekolah() {
             try {
-                const res = await fetch('/api/sekolah');
+                const res = await fetch(`${API_URL}/api/sekolah`);
                 const data = await res.json();
                 const tbody = document.getElementById('tabel-sekolah-body');
                 tbody.innerHTML = '';
@@ -353,9 +309,7 @@
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${s.nama_sekolah}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.alamat || '-'}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="hapusSekolah(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button>
-                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><button onclick="hapusSekolah(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button></td>
                         </tr>
                     `;
                 });
@@ -373,26 +327,25 @@
                 admin_nama: document.getElementById('admin_nama').value
             };
             try {
-                const res = await fetch('/api/sekolah', {
+                const res = await fetch(`${API_URL}/api/sekolah`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const result = await res.json();
-                if (result.success) {
-                    alert('Sekolah dan tugas operator berhasil diatur!');
+                if (res.ok && result.success) {
+                    alert('Sekolah berhasil diatur!');
                     document.getElementById('form-tambah-sekolah').reset();
                     loadSekolah();
                 } else { alert('Gagal: ' + result.error); }
-            } catch (err) { alert('Terjadi kesalahan koneksi.'); }
+            } catch (err) { alert('Kesalahan koneksi ke server.'); }
         }
 
         async function hapusSekolah(id) {
-            if (!confirm('Yakin ingin menghapus sekolah dan pembagian pekerjaan terkait?')) return;
+            if (!confirm('Yakin ingin menghapus sekolah?')) return;
             try {
-                const res = await fetch(`/api/sekolah/${id}`, { method: 'DELETE' });
-                const result = await res.json();
-                if (result.success) loadSekolah();
+                await fetch(`${API_URL}/api/sekolah/${id}`, { method: 'DELETE' });
+                loadSekolah();
             } catch (err) { alert('Terjadi kesalahan.'); }
         }
 
@@ -400,7 +353,7 @@
             const sekolahId = currentUser.sekolah_id || 0;
             const search = document.getElementById('search-siswa').value;
             try {
-                const res = await fetch(`/api/siswa/${sekolahId}?search=${search}`);
+                const res = await fetch(`${API_URL}/api/siswa/${sekolahId}?search=${search}`);
                 const data = await res.json();
                 const tbody = document.getElementById('tabel-siswa-body');
                 tbody.innerHTML = '';
@@ -412,9 +365,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nama_siswa}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.kelas}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${waList}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="hapusSiswa(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button>
-                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><button onclick="hapusSiswa(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button></td>
                         </tr>
                     `;
                 });
@@ -423,7 +374,7 @@
 
         function bukaModalTambahSiswa() {
             if (!currentUser.sekolah_id) {
-                alert('Akun Anda tidak terikat pada sekolah tertentu, pilih atau tambahkan sekolah terlebih dahulu.');
+                alert('Akun Anda tidak terikat pada sekolah tertentu.');
                 return;
             }
             document.getElementById('modal-siswa').classList.remove('hidden');
@@ -438,7 +389,6 @@
             event.preventDefault();
             const rawWa = document.getElementById('wa_ortu').value;
             const waArray = rawWa.split(',').map(item => item.trim());
-
             const payload = {
                 sekolah_id: currentUser.sekolah_id,
                 nisn: document.getElementById('nisn').value,
@@ -447,28 +397,26 @@
                 nama_ortu: 'Wali Murid',
                 wa_ortu: waArray
             };
-
             try {
-                const res = await fetch('/api/siswa', {
+                const res = await fetch(`${API_URL}/api/siswa`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const result = await res.json();
-                if (result.success) {
+                if (res.ok && result.success) {
                     alert('Siswa berhasil disimpan!');
                     tutupModalSiswa();
                     loadSiswa();
                 } else { alert('Gagal: ' + result.error); }
-            } catch (err) { alert('Kesalahan jaringan.'); }
+            } catch (err) { alert('Kesalahan koneksi ke server.'); }
         }
 
         async function hapusSiswa(id) {
             if (!confirm('Yakin ingin menghapus siswa ini?')) return;
             try {
-                const res = await fetch(`/api/siswa/${id}`, { method: 'DELETE' });
-                const result = await res.json();
-                if (result.success) loadSiswa();
+                await fetch(`${API_URL}/api/siswa/${id}`, { method: 'DELETE' });
+                loadSiswa();
             } catch (err) { alert('Gagal menghapus siswa.'); }
         }
 
@@ -476,7 +424,7 @@
             const sekolahId = currentUser.sekolah_id || 0;
             const tanggal = document.getElementById('filter-tanggal').value;
             try {
-                const res = await fetch(`/api/rekap-harian/${sekolahId}?tanggal=${tanggal}`);
+                const res = await fetch(`${API_URL}/api/rekap-harian/${sekolahId}?tanggal=${tanggal}`);
                 const data = await res.json();
                 const tbody = document.getElementById('tabel-rekap-body');
                 tbody.innerHTML = '';
@@ -497,7 +445,7 @@
         async function loadUsers() {
             const sekolahId = currentUser.sekolah_id || 0;
             try {
-                const res = await fetch(`/api/users/${sekolahId}`);
+                const res = await fetch(`${API_URL}/api/users/${sekolahId}`);
                 const data = await res.json();
                 const tbody = document.getElementById('tabel-users-body');
                 tbody.innerHTML = '';
