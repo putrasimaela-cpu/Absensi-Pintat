@@ -162,7 +162,7 @@ app.delete('/api/siswa/:id', async (req, res) => {
   }
 });
 
-// API Luluskan Siswa (Pindah ke Alumni & Hapus dari Siswa Aktif)
+// API Luluskan Siswa
 app.post('/api/luluskan-siswa/:id', async (req, res) => {
   const siswaId = req.params.id;
   try {
@@ -172,16 +172,13 @@ app.post('/api/luluskan-siswa/:id', async (req, res) => {
     }
     const s = siswaRes.rows[0];
 
-    // Masukkan ke tabel alumni secara permanen
     await pool.query(
       `INSERT INTO alumni (sekolah_id, nisn, nama_siswa, kelas_terakhir, nama_ortu, tanggal_lulus) 
        VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)`,
       [s.sekolah_id, s.nisn, s.nama_siswa, s.kelas, s.nama_ortu]
     );
 
-    // Hapus dari tabel siswa aktif (data di alumni dan arsip absensi masa lalu tetap aman)
     await pool.query('DELETE FROM siswa WHERE id = $1', [siswaId]);
-
     res.json({ success: true, message: 'Siswa berhasil diluluskan dan dipindahkan ke Data Alumni!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -215,7 +212,7 @@ app.delete('/api/alumni/:id', async (req, res) => {
   }
 });
 
-// Scan Barcode / QR (Otomatis Hadir Hari Ini)
+// Scan Barcode / QR
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
   if (!nisn) {
@@ -261,7 +258,7 @@ app.post('/api/absensi-manual', async (req, res) => {
   }
 });
 
-// API Rekap Harian (Live Hari Ini)
+// API Rekap Harian
 app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const tanggalQuery = req.query.tanggal || new Date().toISOString().split('T')[0];
@@ -311,7 +308,7 @@ app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   }
 });
 
-// API ARSIP PERMANEN BERDASARKAN TANGGAL
+// API Arsip Absensi
 app.get('/api/arsip-absensi/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const tanggalFilter = req.query.tanggal;
@@ -356,7 +353,7 @@ app.get('/api/arsip-absensi/:sekolah_id', async (req, res) => {
   }
 });
 
-// Get Akumulasi Rekap Excel
+// Rekap Excel
 app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
@@ -393,7 +390,7 @@ app.get('/api/rekap-excel/:sekolah_id', async (req, res) => {
 app.get('/api/users/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
-    let query = `SELECT u.id, u.username, u.nama, u.role, s.nama_sekolah FROM users u LEFT JOIN sekolah s ON u.sekolah_id = s.id`;
+    let query = `SELECT u.id, u.username, u.nama, u.role, u.sekolah_id, s.nama_sekolah FROM users u LEFT JOIN sekolah s ON u.sekolah_id = s.id`;
     let params = [];
     if (sekolahId && sekolahId !== '0') {
       query += ` WHERE u.sekolah_id = $1`;
@@ -414,7 +411,7 @@ app.post('/api/users', async (req, res) => {
       `INSERT INTO users (username, password, nama, role, sekolah_id) VALUES ($1, $2, $3, $4, $5)`,
       [username, password, nama, role, sekolah_id || null]
     );
-    res.json({ success: true, message: 'Pengelola berhasil ditambahkan!' });
+    res.json({ success: true, message: 'Pengguna berhasil ditambahkan!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -428,7 +425,7 @@ app.put('/api/admin/reset-password/:id', async (req, res) => {
       `UPDATE users SET username = $1, password = $2 WHERE id = $3`,
       [username, password, userId]
     );
-    res.json({ success: true, message: 'Username dan Password berhasil diperbarui oleh Admin!' });
+    res.json({ success: true, message: 'Username dan Password berhasil diperbarui!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -437,7 +434,7 @@ app.put('/api/admin/reset-password/:id', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
-    res.json({ success: true, message: 'Pengelola berhasil dihapus!' });
+    res.json({ success: true, message: 'Pengguna berhasil dihapus!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
