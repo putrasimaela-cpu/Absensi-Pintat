@@ -17,10 +17,8 @@
     .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
     .main-content { margin-left: 250px; padding: 20px; }
     .card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    /* Styling khusus agar kotak kamera QR tampil sempurna */
     #reader { width: 100% !important; border: none !important; border-radius: 8px; overflow: hidden; }
     #reader video { width: 100% !important; border-radius: 8px; object-fit: cover; }
-    #reader__dashboard_section_csr button { background-color: #0d6efd !important; color: white !important; border: none !important; padding: 6px 12px !important; border-radius: 4px !important; margin-top: 5px; }
     @media (max-width: 768px) {
       .sidebar { width: 100%; position: relative; min-height: auto; }
       .main-content { margin-left: 0; }
@@ -133,7 +131,7 @@
     <div id="tab-rekap" class="content-tab" style="display:none;">
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Rekapitulasi Kehadiran</h4>
+          <h4>Rekapitulasi Kehadiran Harian & Ubah Status</h4>
           <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Download Rekap Akumulasi</button>
         </div>
         <div class="table-responsive">
@@ -144,7 +142,7 @@
                 <th>NISN</th>
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
-                <th>Status</th>
+                <th>Status (Hadir / Sakit / Izin / Alpha)</th>
                 <th>Jam Masuk</th>
                 <th>Guru Piket</th>
               </tr>
@@ -334,10 +332,7 @@
       if (tabId === 'users') loadUsers();
       if (tabId === 'sekolah') loadSekolah();
       if (tabId === 'scan') {
-        // Beri jeda kecil agar DOM tab-scan selesai dirender sebelum kamera diinisialisasi
-        setTimeout(() => {
-          initScanner();
-        }, 200);
+        setTimeout(() => { initScanner(); }, 200);
       }
     }
 
@@ -349,10 +344,11 @@
     // --- DASHBOARD DATA ---
     function loadDashboardStats() {
       const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/rekap/${sekolahId}`)
+      fetch(`/api/rekap-harian/${sekolahId}`)
         .then(res => res.json())
         .then(data => {
-          document.getElementById('statHadir').innerText = data.length;
+          const totalHadir = data.filter(d => d.status === 'Hadir').length;
+          document.getElementById('statHadir').innerText = totalHadir;
         });
       fetch(`/api/siswa/${sekolahId}`)
         .then(res => res.json())
@@ -362,11 +358,9 @@
     }
     loadDashboardStats();
 
-    // --- SCANNER QR YANG DISEMPURNAKAN ---
+    // --- SCANNER QR ---
     let html5QrCode = null;
-
     function initScanner() {
-      // Jika scanner sudah aktif sebelumnya, hentikan dulu untuk mencegah konflik instance
       if (html5QrCode) {
         html5QrCode.stop().catch(() => {}).finally(() => {
           html5QrCode = null;
@@ -390,19 +384,16 @@
         onScanSuccess, 
         onScanFailure
       ).catch(err => {
-        console.error("Gagal membuka kamera:", err);
-        // Fallback ke kamera depan jika kamera belakang (environment) tidak tersedia
         html5QrCode.start(
           { facingMode: "user" }, 
           config, 
           onScanSuccess, 
           onScanFailure
         ).catch(err2 => {
-          console.error("Kamera gagal diakses:", err2);
           const resultDiv = document.getElementById('scanResult');
           resultDiv.style.display = 'block';
           resultDiv.className = 'mt-3 alert alert-danger text-center';
-          resultDiv.innerHTML = `<strong>Akses Kamera Ditolak / Tidak Tersedia.</strong> Pastikan Anda memberikan izin akses kamera pada browser.`;
+          resultDiv.innerHTML = `<strong>Akses Kamera Ditolak / Tidak Tersedia.</strong>`;
         });
       });
     }
@@ -431,16 +422,13 @@
         }
       })
       .catch(err => {
-        console.error(err);
         resultDiv.style.display = 'block';
         resultDiv.className = 'mt-3 alert alert-danger text-center';
         resultDiv.innerHTML = `<strong>Error:</strong> Gagal terhubung ke server.`;
       });
     }
 
-    function onScanFailure(error) {
-      // Abaikan error frame kosong saat kamera aktif memindai
-    }
+    function onScanFailure(error) {}
 
     // --- DATA SISWA ---
     function loadSiswa() {
@@ -500,16 +488,16 @@
       }
     }
 
-    // --- REKAP KEHADIRAN ---
+    // --- REKAP KEHADIRAN HARIAN & UBAH STATUS ---
     function loadRekap() {
       const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/rekap/${sekolahId}`)
+      fetch(`/api/rekap-harian/${sekolahId}`)
         .then(res => res.json())
         .then(data => {
           let tbody = document.getElementById('tabelRekapBody');
           tbody.innerHTML = '';
           if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada absensi hari ini.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada data siswa.</td></tr>';
             return;
           }
           data.forEach((r, idx) => {
@@ -519,13 +507,42 @@
                 <td>${r.nisn}</td>
                 <td>${r.nama_siswa}</td>
                 <td>${r.kelas}</td>
-                <td><span class="badge bg-success">${r.status}</span></td>
+                <td>
+                  <select class="form-select form-select-sm" onchange="ubahStatusAbsensi(${r.siswa_id}, this.value)">
+                    <option value="Hadir" ${r.status === 'Hadir' ? 'selected' : ''}>Hadir</option>
+                    <option value="Sakit" ${r.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
+                    <option value="Izin" ${r.status === 'Izin' ? 'selected' : ''}>Izin</option>
+                    <option value="Tanpa Keterangan" ${r.status === 'Tanpa Keterangan' ? 'selected' : ''}>Tanpa Keterangan (Alpha)</option>
+                  </select>
+                </td>
                 <td>${r.jam_masuk || '-'}</td>
                 <td>${r.nama_piket || '-'}</td>
               </tr>
             `;
           });
         });
+    }
+
+    function ubahStatusAbsensi(siswaId, statusBaru) {
+      fetch('/api/absensi-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siswa_id: siswaId,
+          status: statusBaru,
+          user_id: currentUser.id
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          alert('Gagal memperbarui status kehadiran');
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Terjadi kesalahan koneksi.');
+      });
     }
 
     // --- REKAP EXCEL AKUMULASI ---
