@@ -1,16 +1,31 @@
 const express = require('express');
 const { Pool } = require('pg');
+const cors = require('cors');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 
 const app = express();
 
+// Mengizinkan koneksi dari frontend (CORS)
+app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Konfigurasi Database (Ganti connection string di bawah atau gunakan process.env.DATABASE_URL)
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/si_absensi';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: connectionString,
+  ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
+});
+
+// Tes Koneksi Database saat Server Dinyalakan
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Gagal terhubung ke Database PostgreSQL:', err.message);
+  } else {
+    console.log('✅ Berhasil terhubung ke Database PostgreSQL pada:', res.rows[0].now);
+  }
 });
 
 // Inisialisasi WhatsApp Client
@@ -24,7 +39,7 @@ waClient.on('qr', (qr) => {
 });
 
 waClient.on('ready', () => {
-  console.log('WhatsApp Client sudah terhubung dan siap mengirim pesan!');
+  console.log('🚀 WhatsApp Client sudah terhubung dan siap mengirim pesan!');
 });
 
 waClient.initialize();
@@ -87,9 +102,9 @@ async function initDb() {
         CONSTRAINT unique_siswa_tanggal UNIQUE (siswa_id, tanggal)
       );
     `);
-    console.log("Database tables verified successfully.");
+    console.log("✔️ Struktur tabel database berhasil diverifikasi.");
   } catch (err) {
-    console.error("Database initialization error:", err);
+    console.error("❌ Kesalahan saat inisialisasi tabel database:", err.message);
   }
 }
 initDb();
@@ -114,7 +129,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// API Manajemen Sekolah & Pembuatan Akun Operator Terkait
+// API Manajemen Sekolah
 app.get('/api/sekolah', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM sekolah ORDER BY id DESC');
@@ -142,7 +157,7 @@ app.post('/api/sekolah', async (req, res) => {
       );
     }
     await client.query('COMMIT');
-    res.json({ success: true, message: 'Sekolah dan pembagian tugas operator berhasil dibuat!', sekolah: sekolahBaru });
+    res.json({ success: true, message: 'Sekolah berhasil dibuat!', sekolah: sekolahBaru });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ success: false, error: err.message });
@@ -154,13 +169,13 @@ app.post('/api/sekolah', async (req, res) => {
 app.delete('/api/sekolah/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM sekolah WHERE id = $1', [req.params.id]);
-    res.json({ success: true, message: 'Data sekolah dan relasi pekerjaan berhasil dihapus!' });
+    res.json({ success: true, message: 'Data sekolah berhasil dihapus!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// API Siswa Berdasarkan Sekolah
+// API Siswa
 app.get('/api/siswa/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const { search } = req.query;
@@ -197,7 +212,7 @@ app.post('/api/siswa', async (req, res) => {
        sekolah_id = EXCLUDED.sekolah_id, nama_siswa = EXCLUDED.nama_siswa, kelas = EXCLUDED.kelas, nama_ortu = EXCLUDED.nama_ortu, wa_ortu = EXCLUDED.wa_ortu, status_kelulusan = 'Aktif'`,
       [sekolah_id, nisn, nama_siswa, kelas, nama_ortu, wa_ortu]
     );
-    res.json({ success: true, message: 'Data siswa berhasil disimpan pada sekolah terkait!' });
+    res.json({ success: true, message: 'Data siswa berhasil disimpan!' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -212,10 +227,10 @@ app.delete('/api/siswa/:id', async (req, res) => {
   }
 });
 
-// API Scan Absensi & Kirim WA Otomatis
+// API Absensi
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
-  if (!nisn) return res.status(400).json({ error: 'NISN / QR Code tidak valid!' });
+  if (!nisn) return res.status(400).json({ error: 'NISN tidak valid!' });
   
   const jamSekarang = new Date().toLocaleTimeString('id-ID');
   const tanggalHariIni = new Date().toISOString().split('T')[0];
@@ -223,7 +238,7 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   try {
     const siswaRes = await pool.query('SELECT * FROM siswa WHERE nisn = $1', [nisn.trim()]);
     if (siswaRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Siswa dengan NISN/QR tersebut tidak ditemukan dalam sistem!' });
+      return res.status(404).json({ error: 'Siswa dengan NISN tersebut tidak ditemukan!' });
     }
     const siswa = siswaRes.rows[0];
 
@@ -252,7 +267,6 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   }
 });
 
-// Rekap Harian Berdasarkan Sekolah
 app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const { tanggal } = req.query;
@@ -286,7 +300,6 @@ app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   }
 });
 
-// Manajemen Users Berdasarkan Sekolah
 app.get('/api/users/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
@@ -304,4 +317,7 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
   }
 });
 
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+});
