@@ -1,862 +1,499 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Sistem Absensi & Alumni</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .sidebar { min-height: 100vh; background: #212529; color: #fff; position: fixed; top: 0; left: 0; width: 250px; z-index: 100; transition: all 0.3s; }
-    .sidebar .nav-link { color: #adb5bd; margin-bottom: 5px; border-radius: 5px; }
-    .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #0d6efd; color: #fff; }
-    .main-content { margin-left: 250px; padding: 20px; }
-    .card { border: none; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    #reader { width: 100% !important; border: none !important; border-radius: 8px; overflow: hidden; }
-    #reader video { width: 100% !important; border-radius: 8px; object-fit: cover; }
-    @media (max-width: 768px) {
-      .sidebar { width: 100%; position: relative; min-height: auto; }
-      .main-content { margin-left: 0; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistem Absensi & Manajemen Sekolah</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="bg-gray-100 font-sans antialiased">
 
-  <!-- SIDEBAR -->
-  <div class="sidebar p-3 d-flex flex-column justify-content-between">
-    <div>
-      <h4 class="text-center text-white mb-4"><i class="fa-solid fa-qrcode"></i> Absensi Pintar</h4>
-      <hr class="text-secondary">
-      <ul class="nav flex-column">
-        <li class="nav-item"><a href="#" class="nav-link active" onclick="switchTab('dashboard', event)"><i class="fa-solid fa-chart-line me-2"></i> Dashboard</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('scan', event)"><i class="fa-solid fa-camera me-2"></i> Scan QR / Barcode</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('siswa', event)"><i class="fa-solid fa-users me-2"></i> Data Siswa Aktif</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('alumni', event)"><i class="fa-solid fa-graduation-cap me-2"></i> Data Alumni</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('rekap', event)"><i class="fa-solid fa-clipboard-user me-2"></i> Kehadiran Hari Ini</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('arsip', event)"><i class="fa-solid fa-box-archive me-2"></i> Arsip & Filter Absensi</a></li>
-        <li class="nav-item" id="menuUser" style="display:none;"><a href="#" class="nav-link" onclick="switchTab('users', event)"><i class="fa-solid fa-user-shield me-2"></i> Manajemen Pengguna</a></li>
-        <li class="nav-item" id="menuSekolah" style="display:none;"><a href="#" class="nav-link" onclick="switchTab('sekolah', event)"><i class="fa-solid fa-school me-2"></i> Data Sekolah</a></li>
-      </ul>
-    </div>
-    <div>
-      <hr class="text-secondary">
-      <div class="dropdown">
-        <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
-          <strong id="userNameDisplay">Pengguna</strong>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-          <li><a class="dropdown-item" href="#" onclick="logout()">Keluar</a></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN CONTENT -->
-  <div class="main-content">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm">
-      <h5 class="m-0 text-dark fw-bold" id="pageTitle">Dashboard</h5>
-      <span class="text-muted" id="sekolahInfoLabel">Memuat...</span>
-    </div>
-
-    <!-- TAB 1: DASHBOARD -->
-    <div id="tab-dashboard" class="content-tab">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="card p-3 bg-primary text-white">
-            <h6>Total Hadir Hari Ini</h6>
-            <h3 id="statHadir">0</h3>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card p-3 bg-success text-white">
-            <h6>Total Siswa Aktif</h6>
-            <h3 id="statSiswa">0</h3>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card p-3 bg-info text-white">
-            <h6>Total Alumni</h6>
-            <h3 id="statAlumni">0</h3>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: SCAN QR -->
-    <div id="tab-scan" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <h4 class="mb-3 text-center">Scan QR Code / Barcode Siswa</h4>
-        <p class="text-muted text-center mb-4">Arahkan kamera ke QR Code NISN siswa aktif untuk mencatat kehadiran otomatis hari ini.</p>
-        <div class="row">
-          <div class="col-md-6 mx-auto">
-            <div id="reader"></div>
-            <div id="scanResult" class="mt-3 alert alert-info text-center" style="display:none;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: DATA SISWA AKTIF -->
-    <div id="tab-siswa" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <h4>Daftar Siswa Aktif</h4>
-          <button class="btn btn-primary btn-sm" id="btnTambahSiswa" data-bs-toggle="modal" data-bs-target="#modalTambahSiswa">+ Tambah Siswa</button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>NISN</th>
-                <th>Nama Siswa</th>
-                <th>Kelas</th>
-                <th>Nama Ortu</th>
-                <th>Aksi / Keterangan Lulus</th>
-              </tr>
-            </thead>
-            <tbody id="tabelSiswaBody">
-              <tr><td colspan="5" class="text-center">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 4: DATA ALUMNI -->
-    <div id="tab-alumni" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Data Alumni Permanen</h4>
-          <span class="badge bg-success">Siswa Lulus Tersimpan Aman</span>
-        </div>
-        <p class="text-muted small">Daftar siswa yang dinyatakan lulus otomatis masuk ke menu ini secara permanen dan terpisah dari data siswa aktif.</p>
-        <div class="table-responsive">
-          <table class="table table-striped table-bordered align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Tanggal Lulus</th>
-                <th>NISN</th>
-                <th>Nama Siswa</th>
-                <th>Kelas Terakhir</th>
-                <th>Nama Ortu</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tabelAlumniBody">
-              <tr><td colspan="7" class="text-center">Memuat data alumni...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 5: KEHADIRAN HARI INI -->
-    <div id="tab-rekap" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <h4>Input & Ubah Kehadiran Hari Ini</h4>
-          <div class="d-flex align-items-center gap-2">
-            <label for="filterTanggal" class="form-label m-0 fw-bold">Tanggal:</label>
-            <input type="date" id="filterTanggal" class="form-control form-control-sm" onchange="loadRekap()">
-            <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Rekap Akumulasi</button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-bordered align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>NISN</th>
-                <th>Nama Siswa</th>
-                <th>Kelas</th>
-                <th>Status Kehadiran</th>
-                <th>Jam Masuk</th>
-                <th>Guru Piket</th>
-              </tr>
-            </thead>
-            <tbody id="tabelRekapBody">
-              <tr><td colspan="8" class="text-center">Memuat rekap...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 6: ARSIP & FILTER ABSENSI -->
-    <div id="tab-arsip" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <h4>Arsip & Riwayat Absensi Permanen</h4>
-          <div class="d-flex align-items-center gap-2">
-            <label for="filterArsipTanggal" class="form-label m-0 fw-bold">Filter Tanggal:</label>
-            <input type="date" id="filterArsipTanggal" class="form-control form-control-sm" onchange="loadArsip()">
-            <button class="btn btn-outline-secondary btn-sm" onclick="resetFilterArsip()">Semua Riwayat</button>
-          </div>
-        </div>
-        <p class="text-muted small">Semua data absensi tersimpan otomatis dan permanen menurut tanggal.</p>
-        <div class="table-responsive">
-          <table class="table table-striped table-bordered align-middle">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Tanggal Arsip</th>
-                <th>NISN</th>
-                <th>Nama Siswa</th>
-                <th>Kelas</th>
-                <th>Status</th>
-                <th>Jam Masuk</th>
-                <th>Guru Piket</th>
-              </tr>
-            </thead>
-            <tbody id="tabelArsipBody">
-              <tr><td colspan="8" class="text-center">Memuat data arsip...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 7: USERS -->
-    <div id="tab-users" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Manajemen Pengguna & Guru Piket</h4>
-          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahUser" onclick="bukaModalTambahUser()">+ Tambah Pengguna</button>
-        </div>
-        <p class="text-muted small">Operator dan Admin dapat mengelola penambahan guru piket. Hanya Admin yang dapat menghapus data atau mengubah data upload utama.</p>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Nama Lengkap</th>
-                <th>Role</th>
-                <th>Sekolah</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tabelUserBody">
-              <tr><td colspan="5" class="text-center">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 8: SEKOLAH -->
-    <div id="tab-sekolah" class="content-tab" style="display:none;">
-      <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Data Sekolah</h4>
-          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSekolah">+ Tambah Sekolah</button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped align-middle">
-            <thead>
-              <tr>
-                <th>Nama Sekolah</th>
-                <th>Alamat</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="tabelSekolahBody">
-              <tr><td colspan="3" class="text-center">Memuat data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- MODAL TAMBAH SISWA -->
-  <div class="modal fade" id="modalTambahSiswa" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Tambah Siswa Baru</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formTambahSiswa">
-            <div class="mb-3">
-              <label class="form-label">NISN</label>
-              <input type="text" class="form-control" id="nisnSiswa" required>
+    <div class="min-h-screen flex flex-col">
+        <!-- Navbar Header -->
+        <header class="bg-indigo-600 text-white shadow-md flex justify-between items-center px-6 py-4">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-school text-2xl"></i>
+                <h1 id="namaSekolahHeader" class="text-xl font-bold">Dashboard Sekolah</h1>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Nama Siswa</label>
-              <input type="text" class="form-control" id="namaSiswa" required>
+            <div class="flex items-center space-x-4">
+                <span id="userInfo" class="text-sm bg-indigo-700 px-3 py-1 rounded-full"></span>
+                <button onclick="logout()" class="bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded text-sm font-semibold transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar
+                </button>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Kelas</label>
-              <input type="text" class="form-control" id="kelasSiswa" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Nama Orang Tua</label>
-              <input type="text" class="form-control" id="ortuSiswa">
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Simpan Siswa</button>
-          </form>
+        </header>
+
+        <!-- Main Content Layout -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigasi -->
+            <aside class="w-64 bg-white shadow-md flex flex-col justify-between">
+                <nav class="p-4 space-y-2">
+                    <button onclick="switchTab('absensi')" id="btn-tab-absensi" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium transition active-tab">
+                        <i class="fa-solid fa-clipboard-user w-5"></i> <span>Scan & Absen</span>
+                    </button>
+                    <button onclick="switchTab('rekap')" id="btn-tab-rekap" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium transition">
+                        <i class="fa-solid fa-chart-pie w-5"></i> <span>Rekap & Arsip</span>
+                    </button>
+                    <button onclick="switchTab('siswa')" id="btn-tab-siswa" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium transition">
+                        <i class="fa-solid fa-users w-5"></i> <span>Data Siswa</span>
+                    </button>
+                    <button onclick="switchTab('alumni')" id="btn-tab-alumni" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium transition">
+                        <i class="fa-solid fa-user-graduate w-5"></i> <span>Data Alumni</span>
+                    </button>
+                    <button onclick="switchTab('users')" id="btn-tab-users" class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium transition">
+                        <i class="fa-solid fa-user-gear w-5"></i> <span>Manajemen User</span>
+                    </button>
+                </nav>
+                <div class="p-4 border-t text-xs text-gray-400 text-center">
+                    Sistem Absensi v2.0
+                </div>
+            </aside>
+
+            <!-- Main Panel View -->
+            <main class="flex-1 overflow-y-auto p-6">
+
+                <!-- TAB 1: ABSENSI & SCANNER -->
+                <div id="tab-absensi" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-xl mx-auto">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-barcode text-indigo-600 mr-2"></i> Input Absensi Barcode / NISN
+                        </h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Scan / Masukkan NISN Siswa</label>
+                                <div class="flex space-x-2">
+                                    <input type="text" id="inputNisn" autofocus placeholder="Tempel barcode / ketik NISN..." class="flex-1 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                    <button onclick="submitBarcode()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-semibold transition">Kirim</button>
+                                </div>
+                            </div>
+                            <div id="scanResult" class="hidden p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: REKAP & ARSIP -->
+                <div id="tab-rekap" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Rekapitulasi Kehadiran Harian</h2>
+                            <input type="date" id="filterTanggal" onchange="loadRekapHarian()" class="border rounded-lg px-3 py-1.5 text-sm">
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-gray-600">
+                                        <th class="p-3">NISN</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Status</th>
+                                        <th class="p-3">Jam Masuk</th>
+                                        <th class="p-3">Guru Piket</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelRekapBody" class="divide-y divide-gray-100">
+                                    <!-- Data dimuat lewat Javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: DATA SISWA AKTIF -->
+                <div id="tab-siswa" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Daftar Siswa Aktif</h2>
+                            <button onclick="openModalTambahSiswa()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-semibold transition">
+                                <i class="fa-solid fa-plus mr-1"></i> Tambah Siswa
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-gray-600">
+                                        <th class="p-3">NISN</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Nama Ortu</th>
+                                        <th class="p-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelSiswaBody" class="divide-y divide-gray-100">
+                                    <!-- Data dimuat lewat Javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: DATA ALUMNI -->
+                <div id="tab-alumni" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">Daftar Siswa Alumni</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-gray-600">
+                                        <th class="p-3">NISN</th>
+                                        <th class="p-3">Nama Siswa</th>
+                                        <th class="p-3">Kelas Terakhir</th>
+                                        <th class="p-3">Tanggal Lulus</th>
+                                        <th class="p-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelAlumniBody" class="divide-y divide-gray-100">
+                                    <!-- Data dimuat lewat Javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: MANAJEMEN USER -->
+                <div id="tab-users" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Manajemen Pengguna / Guru Piket</h2>
+                            <button onclick="openModalTambahUser()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-semibold transition">
+                                <i class="fa-solid fa-user-plus mr-1"></i> Tambah Pengguna
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 border-b text-gray-600">
+                                        <th class="p-3">Username</th>
+                                        <th class="p-3">Nama Lengkap</th>
+                                        <th class="p-3">Role</th>
+                                        <th class="p-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelUsersBody" class="divide-y divide-gray-100">
+                                    <!-- Data dimuat lewat Javascript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- MODAL TAMBAH USER -->
-  <div class="modal fade" id="modalTambahUser" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Tambah Pengguna / Guru Piket</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- MODAL TAMBAH / EDIT SISWA -->
+    <div id="modalSiswa" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-gray-800" id="modalSiswaTitle">Tambah Data Siswa</h3>
+            <input type="hidden" id="siswaId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">NISN</label>
+                <input type="text" id="nisnSiswa" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Siswa</label>
+                <input type="text" id="namaSiswa" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                <input type="text" id="kelasSiswa" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Orang Tua</label>
+                <input type="text" id="namaOrtu" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeModalSiswa()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Batal</button>
+                <button onclick="simpanSiswa()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">Simpan</button>
+            </div>
         </div>
-        <div class="modal-body">
-          <form id="formTambahUser">
-            <div class="mb-3">
-              <label class="form-label">Username</label>
-              <input type="text" class="form-control" id="usernameInput" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Password</label>
-              <input type="password" class="form-control" id="passwordInput" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Nama Lengkap</label>
-              <input type="text" class="form-control" id="namaInput" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Role</label>
-              <select class="form-select" id="roleInput">
-                <option value="GURU_PIKET">Guru Piket</option>
-                <option value="OPERATOR">Operator</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-            </div>
-            <div class="mb-3" id="wrapperSelectSekolah">
-              <label class="form-label">Pilih Sekolah</label>
-              <select class="form-select" id="sekolahUserInput">
-                <option value="">-- Pilih Sekolah --</option>
-              </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Simpan Pengguna</button>
-          </form>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- MODAL EDIT / RESET SANDI -->
-  <div class="modal fade" id="modalEditUser" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Reset Sandi & Akun Pengguna</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formEditUser">
-            <input type="hidden" id="editUserId">
-            <div class="mb-3">
-              <label class="form-label">Username Baru</label>
-              <input type="text" class="form-control" id="editUsername" required>
+    <!-- MODAL TAMBAH USER / GURU PIKET -->
+    <div id="modalUser" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 space-y-4">
+            <h3 class="text-lg font-bold text-gray-800">Tambah Pengguna Baru</h3>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="usernameInput" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
-            <div class="mb-3">
-              <label class="form-label">Password Baru</label>
-              <input type="text" class="form-control" id="editPassword" required placeholder="Masukkan password baru">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="passwordInput" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
-            <button type="submit" class="btn btn-warning w-100">Perbarui Akun</button>
-          </form>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                <input type="text" id="namaUserinput" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Role / Hak Akses</label>
+                <select id="roleInput" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <option value="GURU_PIKET">Guru Piket</option>
+                    <option value="OPERATOR" id="optOperator">Operator Sekolah</option>
+                    <option value="ADMIN" id="optAdmin">Administrator</option>
+                </select>
+                <p id="roleWarning" class="text-xs text-red-500 mt-1 hidden">*Operator hanya diizinkan menambahkan Guru Piket.</p>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeModalUser()" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Batal</button>
+                <button onclick="simpanUser()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">Simpan</button>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
-  <script>
-    let currentUser = JSON.parse(localStorage.getItem('userSession') || 'null');
-    if (!currentUser) {
-      window.location.href = 'index.html';
-    }
+    <!-- Javascript Integrasi Frontend -->
+    <script>
+        let currentUser = JSON.parse(localStorage.getItem('user')) || null;
 
-    document.getElementById('userNameDisplay').innerText = currentUser.nama;
-    document.getElementById('sekolahInfoLabel').innerText = currentUser.nama_sekolah || 'Pusat / Semua Sekolah';
-
-    // Role check: ADMIN atau OPERATOR dapat mengakses menu manajemen pengguna & menambah guru piket
-    if (currentUser.role === 'ADMIN' || currentUser.role === 'OPERATOR') {
-      document.getElementById('menuUser').style.display = 'block';
-    }
-    if (currentUser.role === 'ADMIN') {
-      document.getElementById('menuSekolah').style.display = 'block';
-    } else {
-      // Sembunyikan tombol tambah siswa jika bukan admin (opsional, atau batasi hapus)
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      const today = new Date().toISOString().split('T')[0];
-      const dateInput = document.getElementById('filterTanggal');
-      if(dateInput) dateInput.value = today;
-    });
-
-    function switchTab(tabId, event) {
-      if (event) event.preventDefault();
-      document.querySelectorAll('.content-tab').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
-      
-      document.getElementById('tab-' + tabId).style.display = 'block';
-      if(event && event.currentTarget) event.currentTarget.classList.add('active');
-
-      if (tabId === 'siswa') loadSiswa();
-      if (tabId === 'alumni') loadAlumni();
-      if (tabId === 'rekap') loadRekap();
-      if (tabId === 'arsip') loadArsip();
-      if (tabId === 'users') loadUsers();
-      if (tabId === 'sekolah') loadSekolah();
-      if (tabId === 'scan') {
-        setTimeout(() => { initScanner(); }, 200);
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem('userSession');
-      window.location.href = 'index.html';
-    }
-
-    function loadDashboardStats() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      const today = new Date().toISOString().split('T')[0];
-      fetch(`/api/rekap-harian/${sekolahId}?tanggal=${today}`)
-        .then(res => res.json())
-        .then(data => {
-          const totalHadir = data.filter(d => d.status === 'Hadir').length;
-          document.getElementById('statHadir').innerText = totalHadir;
-        });
-      fetch(`/api/siswa/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('statSiswa').innerText = data.length;
-        });
-      fetch(`/api/alumni/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById('statAlumni').innerText = data.length;
-        });
-    }
-    loadDashboardStats();
-
-    let html5QrCode = null;
-    function initScanner() {
-      if (html5QrCode) {
-        html5QrCode.stop().catch(() => {}).finally(() => {
-          html5QrCode = null;
-          startCameraScan();
-        });
-      } else {
-        startCameraScan();
-      }
-    }
-
-    function startCameraScan() {
-      const readerElement = document.getElementById('reader');
-      if (!readerElement) return;
-
-      html5QrCode = new Html5Qrcode("reader");
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-      html5QrCode.start(
-        { facingMode: "environment" }, config, onScanSuccess, onScanFailure
-      ).catch(err => {
-        html5QrCode.start(
-          { facingMode: "user" }, config, onScanSuccess, onScanFailure
-        ).catch(err2 => {});
-      });
-    }
-
-    function onScanSuccess(decodedText, decodedResult) {
-      const nisnBersih = decodedText.trim();
-      const resultDiv = document.getElementById('scanResult');
-      
-      fetch('/api/absensi-barcode-nisn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nisn: nisnBersih, pendaftar_id: currentUser.id })
-      })
-      .then(res => res.json())
-      .then(data => {
-        resultDiv.style.display = 'block';
-        if (data.success) {
-          resultDiv.className = 'mt-3 alert alert-success text-center';
-          resultDiv.innerHTML = `<strong>Berhasil!</strong> ${data.nama_siswa} (${data.kelas}) Tercatat Hadir jam ${data.jam}`;
+        if (!currentUser) {
+            window.location.href = 'index.html'; // Arahkan ke halaman login jika belum login
         } else {
-          resultDiv.className = 'mt-3 alert alert-danger text-center';
-          resultDiv.innerHTML = `<strong>Gagal:</strong> ${data.error || 'Siswa tidak ditemukan'}`;
-        }
-      });
-    }
-    function onScanFailure(error) {}
-
-    function loadSiswa() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/siswa/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelSiswaBody');
-          tbody.innerHTML = '';
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data siswa aktif.</td></tr>';
-            return;
-          }
-          data.forEach(s => {
-            let actionBtn = '';
-            // Hanya Admin yang berhak menghapus data utama atau menyatakan lulus jika dibatasi, namun operator bisa meluluskan sesuai ketentuan
-            if (currentUser.role === 'ADMIN' || currentUser.role === 'OPERATOR') {
-              actionBtn = `
-                <button class="btn btn-success btn-sm me-1" onclick="luluskanSiswa(${s.id}, '${s.nama_siswa}')"><i class="fa-solid fa-graduation-cap me-1"></i> Nyatakan Lulus</button>
-              `;
+            document.getElementById('namaSekolahHeader').innerText = currentUser.nama_sekolah || 'Dashboard Utama';
+            document.getElementById('userInfo').innerText = `${currentUser.nama} (${currentUser.role})`;
+            
+            // Terapkan pembatasan tampilan berdasarkan role
+            if (currentUser.role === 'OPERATOR') {
+                document.getElementById('optOperator').style.display = 'none';
+                document.getElementById('optAdmin').style.display = 'none';
+                document.getElementById('roleWarning').classList.remove('hidden');
             }
-            if (currentUser.role === 'ADMIN') {
-              actionBtn += `<button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button>`;
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('aside nav button').forEach(el => el.classList.remove('bg-indigo-50', 'text-indigo-600'));
+            
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tabId}`).classList.add('bg-indigo-50', 'text-indigo-600');
+
+            if (tabId === 'rekap') loadRekapHarian();
+            if (tabId === 'siswa') loadSiswa();
+            if (tabId === 'alumni') loadAlumni();
+            if (tabId === 'users') loadUsers();
+        }
+
+        // Set tanggal default hari ini pada rekap
+        document.getElementById('filterTanggal').valueAsDate = new Date();
+
+        // 1. Absensi Barcode
+        async function submitBarcode() {
+            const nisn = document.getElementById('inputNisn').value.trim();
+            if (!nisn) return;
+
+            try {
+                const response = await fetch('/api/absensi-barcode-nisn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nisn, pendaftar_id: currentUser.id })
+                });
+                const result = await response.json();
+                const resDiv = document.getElementById('scanResult');
+                resDiv.classList.remove('hidden');
+
+                if (response.ok) {
+                    resDiv.className = "p-4 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm";
+                    resDiv.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Berhasil: <b>${result.nama_siswa}</b> (${result.kelas}) tercatat Hadir pada pukul ${result.jam}`;
+                } else {
+                    resDiv.className = "p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm";
+                    resDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Gagal: ${result.error}`;
+                }
+                document.getElementById('inputNisn').value = '';
+            } catch (err) {
+                alert('Terjadi kesalahan koneksi server.');
+            }
+        }
+
+        // 2. Load Rekap Harian
+        async function loadRekapHarian() {
+            const tanggal = document.getElementById('filterTanggal').value;
+            const sekolahId = currentUser.sekolah_id || 0;
+            try {
+                const res = await fetch(`/api/rekap-harian/${sekolahId}?tanggal=${tanggal}`);
+                const data = await res.json();
+                const tbody = document.getElementById('tabelRekapBody');
+                tbody.innerHTML = '';
+
+                data.forEach(row => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3">${row.nisn}</td>
+                            <td class="p-3 font-medium">${row.nama_siswa}</td>
+                            <td class="p-3">${row.kelas}</td>
+                            <td class="p-3"><span class="px-2 py-1 rounded text-xs font-semibold ${row.status === 'Hadir' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">${row.status}</span></td>
+                            <td class="p-3">${row.jam_masuk || '-'}</td>
+                            <td class="p-3">${row.nama_piket || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // 3. Load Data Siswa
+        async function loadSiswa() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            try {
+                const res = await fetch(`/api/siswa/${sekolahId}`);
+                const data = await res.json();
+                const tbody = document.getElementById('tabelSiswaBody');
+                tbody.innerHTML = '';
+
+                data.forEach(row => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3">${row.nisn}</td>
+                            <td class="p-3 font-medium">${row.nama_siswa}</td>
+                            <td class="p-3">${row.kelas}</td>
+                            <td class="p-3">${row.nama_ortu || '-'}</td>
+                            <td class="p-3 text-center space-x-2">
+                                <button onclick="luluskanSiswa(${row.id})" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded">Luluskan</button>
+                                <button onclick="hapusSiswa(${row.id})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function openModalTambahSiswa() {
+            document.getElementById('modalSiswa').classList.remove('hidden');
+        }
+
+        function closeModalSiswa() {
+            document.getElementById('modalSiswa').classList.add('hidden');
+        }
+
+        async function simpanSiswa() {
+            const data = {
+                sekolah_id: currentUser.sekolah_id,
+                nisn: document.getElementById('nisnSiswa').value,
+                nama_siswa: document.getElementById('namaSiswa').value,
+                kelas: document.getElementById('kelasSiswa').value,
+                nama_ortu: document.getElementById('namaOrtu').value
+            };
+            const res = await fetch('/api/siswa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                closeModalSiswa();
+                loadSiswa();
+            }
+        }
+
+        async function luluskanSiswa(id) {
+            if (confirm('Yakin ingin meluluskan siswa ini?')) {
+                await fetch(`/api/luluskan-siswa/${id}`, { method: 'POST' });
+                loadSiswa();
+            }
+        }
+
+        async function hapusSiswa(id) {
+            if (confirm('Yakin ingin menghapus siswa ini?')) {
+                await fetch(`/api/siswa/${id}`, { method: 'DELETE' });
+                loadSiswa();
+            }
+        }
+
+        // 4. Load Data Alumni
+        async function loadAlumni() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            const res = await fetch(`/api/alumni/${sekolahId}`);
+            const data = await res.json();
+            const tbody = document.getElementById('tabelAlumniBody');
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3">${row.nisn}</td>
+                        <td class="p-3 font-medium">${row.nama_siswa}</td>
+                        <td class="p-3">${row.kelas_terakhir}</td>
+                        <td class="p-3">${row.tanggal_lulus ? row.tanggal_lulus.split('T')[0] : '-'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="hapusAlumni(${row.id})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function hapusAlumni(id) {
+            if (confirm('Hapus data alumni ini?')) {
+                await fetch(`/api/alumni/${id}`, { method: 'DELETE' });
+                loadAlumni();
+            }
+        }
+
+        // 5. Manajemen User
+        async function loadUsers() {
+            const sekolahId = currentUser.sekolah_id || 0;
+            const res = await fetch(`/api/users/${sekolahId}`);
+            const data = await res.json();
+            const tbody = document.getElementById('tabelUsersBody');
+            tbody.innerHTML = '';
+            data.forEach(row => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-3">${row.username}</td>
+                        <td class="p-3 font-medium">${row.nama}</td>
+                        <td class="p-3"><span class="px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-semibold">${row.role}</span></td>
+                        <td class="p-3 text-center">
+                            <button onclick="hapusUser(${row.id})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded">Hapus</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openModalTambahUser() {
+            document.getElementById('modalUser').classList.remove('hidden');
+        }
+
+        function closeModalUser() {
+            document.getElementById('modalUser').classList.add('hidden');
+        }
+
+        async function simpanUser() {
+            const data = {
+                username: document.getElementById('usernameInput').value,
+                password: document.getElementById('passwordInput').value,
+                nama: document.getElementById('namaUserinput').value,
+                role: document.getElementById('roleInput').value,
+                sekolah_id: currentUser.sekolah_id,
+                creator_role: currentUser.role // Mengirim role pembuat untuk divalidasi backend
+            };
+
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (res.ok) {
+                closeModalUser();
+                loadUsers();
             } else {
-              actionBtn += `<span class="badge bg-secondary" title="Hanya Admin yang dapat menghapus data siswa">Terkunci (Hanya Admin)</span>`;
+                alert(result.error);
             }
+        }
 
-            tbody.innerHTML += `
-              <tr>
-                <td>${s.nisn}</td>
-                <td>${s.nama_siswa}</td>
-                <td>${s.kelas}</td>
-                <td>${s.nama_ortu || '-'}</td>
-                <td>${actionBtn}</td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function luluskanSiswa(id, nama) {
-      if(confirm(`Apakah Anda yakin ingin menyatakan ${nama} LULUS?\nSiswa akan dipindahkan ke Data Alumni.`)) {
-        fetch(`/api/luluskan-siswa/${id}`, { method: 'POST' })
-          .then(res => res.json())
-          .then(data => {
-            if(data.success) {
-              alert(data.message);
-              loadSiswa();
-              loadDashboardStats();
-            } else {
-              alert('Gagal: ' + data.error);
+        async function hapusUser(id) {
+            if (confirm('Yakin ingin menghapus pengguna ini?')) {
+                await fetch(`/api/users/${id}`, { method: 'DELETE' });
+                loadUsers();
             }
-          });
-      }
-    }
-
-    function loadAlumni() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/alumni/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelAlumniBody');
-          tbody.innerHTML = '';
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada data alumni.</td></tr>';
-            return;
-          }
-          data.forEach((a, idx) => {
-            let formattedDate = a.tanggal_lulus ? a.tanggal_lulus.substring(0, 10) : '-';
-            let hapusAlumniBtn = currentUser.role === 'ADMIN' ? `<button class="btn btn-outline-danger btn-sm" onclick="hapusAlumni(${a.id})">Hapus</button>` : '-';
-            tbody.innerHTML += `
-              <tr>
-                <td>${idx + 1}</td>
-                <td>${formattedDate}</td>
-                <td>${a.nisn}</td>
-                <td>${a.nama_siswa}</td>
-                <td>${a.kelas_terakhir}</td>
-                <td>${a.nama_ortu || '-'}</td>
-                <td>${hapusAlumniBtn}</td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function hapusAlumni(id) {
-      if(confirm('Yakin ingin menghapus data alumni ini?')) {
-        fetch(`/api/alumni/${id}`, { method: 'DELETE' }).then(() => { loadAlumni(); loadDashboardStats(); });
-      }
-    }
-
-    document.getElementById('formTambahSiswa').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const payload = {
-        sekolah_id: currentUser.sekolah_id || 1,
-        nisn: document.getElementById('nisnSiswa').value,
-        nama_siswa: document.getElementById('namaSiswa').value,
-        kelas: document.getElementById('kelasSiswa').value,
-        nama_ortu: document.getElementById('ortuSiswa').value,
-        no_wa_list: []
-      };
-      fetch('/api/siswa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          alert('Siswa berhasil disimpan!');
-          location.reload();
         }
-      });
-    });
-
-    function hapusSiswa(id) {
-      if(confirm('Yakin ingin menghapus siswa ini?')) {
-        fetch(`/api/siswa/${id}`, { method: 'DELETE' }).then(() => loadSiswa());
-      }
-    }
-
-    function loadRekap() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      const tanggalPilih = document.getElementById('filterTanggal').value;
-      
-      fetch(`/api/rekap-harian/${sekolahId}?tanggal=${tanggalPilih}`)
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelRekapBody');
-          tbody.innerHTML = '';
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data.</td></tr>';
-            return;
-          }
-          data.forEach((r, idx) => {
-            let formattedDate = r.tanggal ? r.tanggal.substring(0, 10) : tanggalPilih;
-            tbody.innerHTML += `
-              <tr>
-                <td>${idx + 1}</td>
-                <td>${formattedDate}</td>
-                <td>${r.nisn}</td>
-                <td>${r.nama_siswa}</td>
-                <td>${r.kelas}</td>
-                <td>
-                  <select class="form-select form-select-sm" onchange="ubahStatusAbsensi(${r.siswa_id}, this.value)">
-                    <option value="Hadir" ${r.status === 'Hadir' ? 'selected' : ''}>Hadir</option>
-                    <option value="Sakit" ${r.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
-                    <option value="Izin" ${r.status === 'Izin' ? 'selected' : ''}>Izin</option>
-                    <option value="Tanpa Keterangan" ${r.status === 'Tanpa Keterangan' || r.status === 'Alpha' ? 'selected' : ''}>Tanpa Keterangan (Alpha)</option>
-                  </select>
-                </td>
-                <td>${r.jam_masuk || '-'}</td>
-                <td>${r.nama_piket || '-'}</td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function loadArsip() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      const tanggalFilter = document.getElementById('filterArsipTanggal').value;
-      let url = `/api/arsip-absensi/${sekolahId}`;
-      if (tanggalFilter) url += `?tanggal=${tanggalFilter}`;
-
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelArsipBody');
-          tbody.innerHTML = '';
-          if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada arsip.</td></tr>';
-            return;
-          }
-          data.forEach((r, idx) => {
-            let formattedDate = r.tanggal ? r.tanggal.substring(0, 10) : '-';
-            tbody.innerHTML += `
-              <tr>
-                <td>${idx + 1}</td>
-                <td>${formattedDate}</td>
-                <td>${r.nisn}</td>
-                <td>${r.nama_siswa}</td>
-                <td>${r.kelas}</td>
-                <td><span class="badge bg-primary">${r.status}</span></td>
-                <td>${r.jam_masuk || '-'}</td>
-                <td>${r.nama_piket || '-'}</td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function resetFilterArsip() {
-      document.getElementById('filterArsipTanggal').value = '';
-      loadArsip();
-    }
-
-    function ubahStatusAbsensi(siswaId, statusBaru) {
-      const tanggalPilih = document.getElementById('filterTanggal').value;
-      fetch('/api/absensi-manual', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ siswa_id: siswaId, status: statusBaru, user_id: currentUser.id, tanggal: tanggalPilih })
-      });
-    }
-
-    function downloadRekapExcel() {
-      const sekolahId = currentUser.sekolah_id || 0;
-      fetch(`/api/rekap-excel/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          let csv = "NISN,Nama Siswa,Kelas,Total Hadir,Total Sakit,Total Izin,Total Alpha,Guru Piket Terakhir\n";
-          data.forEach(row => {
-            csv += `"${row.nisn}","${row.nama_siswa}","${row.kelas}",${row.total_hadir},${row.total_sakit},${row.total_izin},${row.total_alpha},"${row.guru_piket_terakhir || '-'}"\n`;
-          });
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'Rekap_Akumulasi_Kehadiran.csv';
-          a.click();
-        });
-    }
-
-    function loadUsers() {
-      const sekolahId = currentUser.role === 'ADMIN' ? 0 : currentUser.sekolah_id;
-      fetch(`/api/users/${sekolahId}`)
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelUserBody');
-          tbody.innerHTML = '';
-          data.forEach(u => {
-            let deleteBtn = '';
-            // Hanya Admin yang dapat menghapus akun, atau operator dapat menghapus guru piket namun tidak menghapus admin/operator lain
-            if (currentUser.role === 'ADMIN') {
-              deleteBtn = `<button class="btn btn-danger btn-sm" onclick="hapusUser(${u.id})">Hapus</button>`;
-            } else if (currentUser.role === 'OPERATOR' && u.role === 'GURU_PIKET') {
-              deleteBtn = `<button class="btn btn-danger btn-sm" onclick="hapusUser(${u.id})">Hapus</button>`;
-            } else {
-              deleteBtn = `<span class="badge bg-secondary">Terkunci</span>`;
-            }
-
-            tbody.innerHTML += `
-              <tr>
-                <td>${u.username}</td>
-                <td>${u.nama}</td>
-                <td><span class="badge bg-secondary">${u.role}</span></td>
-                <td>${u.nama_sekolah || 'Semua / Pusat'}</td>
-                <td>
-                  <button class="btn btn-warning btn-sm me-1" onclick="bukaModalEditUser(${u.id}, '${u.username}')">Reset Sandi</button>
-                  ${deleteBtn}
-                </td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function bukaModalTambahUser() {
-      // Muat pilihan sekolah ke dalam dropdown modal tambah user
-      fetch('/api/sekolah')
-        .then(res => res.json())
-        .then(data => {
-          let select = document.getElementById('sekolahUserInput');
-          select.innerHTML = '<option value="">-- Pilih Sekolah --</option>';
-          data.forEach(s => {
-            select.innerHTML += `<option value="${s.id}">${s.nama_sekolah}</option>`;
-          });
-          // Jika login sebagai operator, kunci otomatis ke sekolah operator tersebut
-          if (currentUser.role === 'OPERATOR') {
-            select.value = currentUser.sekolah_id;
-            select.disabled = true;
-          }
-        });
-    }
-
-    document.getElementById('formTambahUser').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const sekolahVal = currentUser.role === 'OPERATOR' ? currentUser.sekolah_id : document.getElementById('sekolahUserInput').value;
-      const payload = {
-        username: document.getElementById('usernameInput').value,
-        password: document.getElementById('passwordInput').value,
-        nama: document.getElementById('namaInput').value,
-        role: document.getElementById('roleInput').value,
-        sekolah_id: sekolahVal || null
-      };
-      fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          alert('Pengguna berhasil ditambahkan!');
-          location.reload();
-        } else {
-          alert('Gagal menambah pengguna: ' + data.error);
-        }
-      });
-    });
-
-    function bukaModalEditUser(id, username) {
-      document.getElementById('editUserId').value = id;
-      document.getElementById('editUsername').value = username;
-      document.getElementById('editPassword').value = '';
-      new bootstrap.Modal(document.getElementById('modalEditUser')).show();
-    }
-
-    document.getElementById('formEditUser').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const id = document.getElementById('editUserId').value;
-      const username = document.getElementById('editUsername').value;
-      const password = document.getElementById('editPassword').value;
-
-      fetch(`/api/admin/reset-password/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          alert('Sandi berhasil diubah!');
-          location.reload();
-        }
-      });
-    });
-
-    function hapusUser(id) {
-      if(confirm('Yakin ingin menghapus pengguna ini?')) {
-        fetch(`/api/users/${id}`, { method: 'DELETE' }).then(() => loadUsers());
-      }
-    }
-
-    function loadSekolah() {
-      fetch('/api/sekolah')
-        .then(res => res.json())
-        .then(data => {
-          let tbody = document.getElementById('tabelSekolahBody');
-          tbody.innerHTML = '';
-          data.forEach(s => {
-            let deleteSekolahBtn = currentUser.role === 'ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="hapusSekolah(${s.id})">Hapus</button>` : '-';
-            tbody.innerHTML += `
-              <tr>
-                <td>${s.nama_sekolah}</td>
-                <td>${s.alamat || '-'}</td>
-                <td>${deleteSekolahBtn}</td>
-              </tr>
-            `;
-          });
-        });
-    }
-
-    function hapusSekolah(id) {
-      if(confirm('Yakin ingin menghapus data sekolah ini?')) {
-        fetch(`/api/sekolah/${id}`, { method: 'DELETE' }).then(() => loadSekolah());
-      }
-    }
-  </script>
+    </script>
 </body>
 </html>
