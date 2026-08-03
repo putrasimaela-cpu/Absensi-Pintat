@@ -6,7 +6,7 @@ const qrcode = require('qrcode-terminal');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -25,23 +25,26 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-const waClient = new Client({
-  authStrategy: new LocalAuth()
-});
-
-waClient.on('qr', (qr) => {
-  console.log('SCAN QR WHATSAPP INI DI TERMINAL ANDA:');
-  qrcode.generate(qr, { small: true });
-});
-
-waClient.on('ready', () => {
-  console.log('🚀 WhatsApp Client sudah terhubung dan siap mengirim pesan!');
-});
-
-waClient.initialize();
+let waClient = null;
+try {
+  waClient = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+  });
+  waClient.on('qr', (qr) => {
+    console.log('SCAN QR WHATSAPP INI DI TERMINAL ANDA:');
+    qrcode.generate(qr, { small: true });
+  });
+  waClient.on('ready', () => {
+    console.log('🚀 WhatsApp Client sudah terhubung dan siap mengirim pesan!');
+  });
+  waClient.initialize();
+} catch (e) {
+  console.log('⚠️ WhatsApp Web Client tidak diaktifkan pada lingkungan server serverless (Vercel).');
+}
 
 async function kirimNotifikasiWA(nomorList, pesan) {
-  if (!nomorList || !Array.isArray(nomorList)) return;
+  if (!waClient || !nomorList || !Array.isArray(nomorList)) return;
   for (let noHp of nomorList) {
     if (!noHp) continue;
     let formattedNo = noHp.trim();
@@ -51,7 +54,6 @@ async function kirimNotifikasiWA(nomorList, pesan) {
     const chatId = formattedNo + '@c.us';
     try {
       await waClient.sendMessage(chatId, pesan);
-      console.log(`Pesan WhatsApp terkirim ke: ${formattedNo}`);
     } catch (err) {
       console.error(`Gagal mengirim WA ke ${formattedNo}:`, err.message);
     }
@@ -163,15 +165,6 @@ app.post('/api/sekolah', async (req, res) => {
   }
 });
 
-app.delete('/api/sekolah/:id', async (req, res) => {
-  try {
-    await pool.query('DELETE FROM sekolah WHERE id = $1', [req.params.id]);
-    res.json({ success: true, message: 'Data sekolah berhasil dihapus!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // API Siswa Aktif
 app.get('/api/siswa/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
@@ -188,7 +181,6 @@ app.get('/api/siswa/:sekolah_id', async (req, res) => {
     if (search) {
       query += ` AND (nama_siswa ILIKE $${idx} OR nisn ILIKE $${idx})`;
       params.push(`%${search}%`);
-      idx++;
     }
 
     query += ' ORDER BY kelas, nama_siswa ASC';
@@ -254,7 +246,7 @@ app.get('/api/alumni/:sekolah_id', async (req, res) => {
   }
 });
 
-// API Absensi & Barcode Scan
+// API Absensi Barcode Scan
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
   if (!nisn) return res.status(400).json({ error: 'NISN tidak valid!' });
@@ -377,11 +369,9 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   const { username, password, nama, role, sekolah_id, creator_role } = req.body;
-  
   if (creator_role === 'OPERATOR' && role !== 'GURU_PIKET') {
     return res.status(403).json({ success: false, error: 'Operator hanya diizinkan menambahkan Guru Piket!' });
   }
-
   try {
     await pool.query(
       `INSERT INTO users (username, password, nama, role, sekolah_id) 
@@ -400,7 +390,7 @@ app.delete('/api/users/:id', async (req, res) => {
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ success: true, message: 'Pengguna berhasil dihapus!' });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -439,3 +429,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
 });
+
+module.exports = app;
