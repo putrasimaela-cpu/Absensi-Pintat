@@ -6,12 +6,10 @@ const qrcode = require('qrcode-terminal');
 
 const app = express();
 
-// Mengizinkan koneksi dari frontend (CORS)
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Konfigurasi Database (Ganti connection string di bawah atau gunakan process.env.DATABASE_URL)
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:password@localhost:5432/si_absensi';
 
 const pool = new Pool({
@@ -19,7 +17,6 @@ const pool = new Pool({
   ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
 });
 
-// Tes Koneksi Database saat Server Dinyalakan
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('❌ Gagal terhubung ke Database PostgreSQL:', err.message);
@@ -28,7 +25,6 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Inisialisasi WhatsApp Client
 const waClient = new Client({
   authStrategy: new LocalAuth()
 });
@@ -89,7 +85,8 @@ async function initDb() {
         kelas VARCHAR(50) NOT NULL,
         nama_ortu VARCHAR(150),
         wa_ortu TEXT[],
-        status_kelulusan VARCHAR(50) DEFAULT 'Aktif'
+        status_kelulusan VARCHAR(50) DEFAULT 'Aktif',
+        tanggal_lulus DATE
       );
 
       CREATE TABLE IF NOT EXISTS absensi (
@@ -175,7 +172,7 @@ app.delete('/api/sekolah/:id', async (req, res) => {
   }
 });
 
-// API Siswa
+// API Siswa Aktif
 app.get('/api/siswa/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   const { search } = req.query;
@@ -218,6 +215,18 @@ app.post('/api/siswa', async (req, res) => {
   }
 });
 
+app.post('/api/siswa/lulus/:id', async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE siswa SET status_kelulusan = 'Alumni', tanggal_lulus = CURRENT_DATE WHERE id = $1`,
+      [req.params.id]
+    );
+    res.json({ success: true, message: 'Siswa dipindahkan ke data alumni.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/siswa/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM siswa WHERE id = $1', [req.params.id]);
@@ -227,7 +236,25 @@ app.delete('/api/siswa/:id', async (req, res) => {
   }
 });
 
-// API Absensi
+// API Alumni
+app.get('/api/alumni/:sekolah_id', async (req, res) => {
+  const sekolahId = req.params.sekolah_id;
+  try {
+    let query = `SELECT * FROM siswa WHERE status_kelulusan = 'Alumni'`;
+    let params = [];
+    if (sekolahId && sekolahId !== '0' && sekolahId !== 'null') {
+      query += ` AND sekolah_id = $1`;
+      params.push(sekolahId);
+    }
+    query += ` ORDER BY tanggal_lulus DESC`;
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API Absensi & Barcode Scan
 app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const { nisn, pendaftar_id } = req.body;
   if (!nisn) return res.status(400).json({ error: 'NISN tidak valid!' });
@@ -236,9 +263,9 @@ app.post('/api/absensi-barcode-nisn', async (req, res) => {
   const tanggalHariIni = new Date().toISOString().split('T')[0];
 
   try {
-    const siswaRes = await pool.query('SELECT * FROM siswa WHERE nisn = $1', [nisn.trim()]);
+    const siswaRes = await pool.query('SELECT * FROM siswa WHERE nisn = $1 AND (status_kelulusan IS NULL OR status_kelulusan = \'Aktif\')', [nisn.trim()]);
     if (siswaRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Siswa dengan NISN tersebut tidak ditemukan!' });
+      return res.status(404).json({ error: 'Siswa aktif dengan NISN tersebut tidak ditemukan!' });
     }
     const siswa = siswaRes.rows[0];
 
@@ -300,6 +327,37 @@ app.get('/api/rekap-harian/:sekolah_id', async (req, res) => {
   }
 });
 
+app.get('/api/arsip/:sekolah_id', async (req, res) => {
+  const sekolahId = req.params.sekolah_id;
+  const { tanggal } = req.query;
+  try {
+    let query = `
+      SELECT a.tanggal as tanggal_arsip, s.nisn, s.nama_siswa, s.kelas, a.status 
+      FROM absensi a 
+      JOIN siswa s ON a.siswa_id = s.id 
+      WHERE 1=1
+    `;
+    let params = [];
+    let idx = 1;
+
+    if (sekolahId && sekolahId !== '0' && sekolahId !== 'null') {
+      query += ` AND s.sekolah_id = $${idx++}`;
+      params.push(sekolahId);
+    }
+    if (tanggal) {
+      query += ` AND a.tanggal = $${idx++}::DATE`;
+      params.push(tanggal);
+    }
+
+    query += ` ORDER BY a.tanggal DESC, s.kelas ASC`;
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// API Manajemen User / Guru Piket / Operator
 app.get('/api/users/:sekolah_id', async (req, res) => {
   const sekolahId = req.params.sekolah_id;
   try {
@@ -312,6 +370,66 @@ app.get('/api/users/:sekolah_id', async (req, res) => {
     query += ` ORDER BY u.id DESC`;
     const result = await pool.query(query, params);
     res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  const { username, password, nama, role, sekolah_id, creator_role } = req.body;
+  
+  if (creator_role === 'OPERATOR' && role !== 'GURU_PIKET') {
+    return res.status(403).json({ success: false, error: 'Operator hanya diizinkan menambahkan Guru Piket!' });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO users (username, password, nama, role, sekolah_id) 
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (username) DO UPDATE SET password = EXCLUDED.password, nama = EXCLUDED.nama, role = EXCLUDED.role`,
+      [username, password, nama, role, sekolah_id]
+    );
+    res.json({ success: true, message: `Pengguna ${role} berhasil disimpan!` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ success: true, message: 'Pengguna berhasil dihapus!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// API Statistik Dashboard
+app.get('/api/stats/:sekolah_id', async (req, res) => {
+  const sekolahId = req.params.sekolah_id;
+  const tanggalHariIni = new Date().toISOString().split('T')[0];
+  try {
+    let params = [tanggalHariIni];
+    let queryHadir = `SELECT COUNT(*) FROM absensi a JOIN siswa s ON a.siswa_id = s.id WHERE a.tanggal = $1::DATE AND a.status = 'Hadir'`;
+    let querySiswa = `SELECT COUNT(*) FROM siswa WHERE (status_kelulusan IS NULL OR status_kelulusan = 'Aktif')`;
+    let queryAlumni = `SELECT COUNT(*) FROM siswa WHERE status_kelulusan = 'Alumni'`;
+
+    if (sekolahId && sekolahId !== '0' && sekolahId !== 'null') {
+      queryHadir += ` AND s.sekolah_id = $2`;
+      querySiswa += ` AND sekolah_id = $1`;
+      queryAlumni += ` AND sekolah_id = $1`;
+      params.push(sekolahId);
+    }
+
+    const hadirRes = await pool.query(queryHadir, sekolahId && sekolahId !== '0' && sekolahId !== 'null' ? [tanggalHariIni, sekolahId] : [tanggalHariIni]);
+    const siswaRes = await pool.query(querySiswa, sekolahId && sekolahId !== '0' && sekolahId !== 'null' ? [sekolahId] : []);
+    const alumniRes = await pool.query(queryAlumni, sekolahId && sekolahId !== '0' && sekolahId !== 'null' ? [sekolahId] : []);
+
+    res.json({
+      hadir_hari_ini: hadirRes.rows[0].count,
+      total_siswa_aktif: siswaRes.rows[0].count,
+      total_alumni: alumniRes.rows[0].count
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
