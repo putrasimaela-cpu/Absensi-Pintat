@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Sistem Absensi</title>
+  <title>Dashboard - Sistem Absensi & Alumni</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/html5-qrcode"></script>
@@ -32,8 +32,10 @@
       <ul class="nav flex-column">
         <li class="nav-item"><a href="#" class="nav-link active" onclick="switchTab('dashboard', event)"><i class="fa-solid fa-chart-line me-2"></i> Dashboard</a></li>
         <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('scan', event)"><i class="fa-solid fa-camera me-2"></i> Scan QR / Barcode</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('siswa', event)"><i class="fa-solid fa-users me-2"></i> Data Siswa</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('rekap', event)"><i class="fa-solid fa-file-excel me-2"></i> Rekap Kehadiran</a></li>
+        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('siswa', event)"><i class="fa-solid fa-users me-2"></i> Data Siswa Aktif</a></li>
+        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('alumni', event)"><i class="fa-solid fa-graduation-cap me-2"></i> Data Alumni</a></li>
+        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('rekap', event)"><i class="fa-solid fa-clipboard-user me-2"></i> Kehadiran Hari Ini</a></li>
+        <li class="nav-item"><a href="#" class="nav-link" onclick="switchTab('arsip', event)"><i class="fa-solid fa-box-archive me-2"></i> Arsip & Filter Absensi</a></li>
         <li class="nav-item" id="menuUser" style="display:none;"><a href="#" class="nav-link" onclick="switchTab('users', event)"><i class="fa-solid fa-user-shield me-2"></i> Manajemen Pengguna</a></li>
         <li class="nav-item" id="menuSekolah" style="display:none;"><a href="#" class="nav-link" onclick="switchTab('sekolah', event)"><i class="fa-solid fa-school me-2"></i> Data Sekolah</a></li>
       </ul>
@@ -70,14 +72,14 @@
         </div>
         <div class="col-md-4">
           <div class="card p-3 bg-success text-white">
-            <h6>Total Siswa Terdaftar</h6>
+            <h6>Total Siswa Aktif</h6>
             <h3 id="statSiswa">0</h3>
           </div>
         </div>
         <div class="col-md-4">
-          <div class="card p-3 bg-warning text-dark">
-            <h6>Petugas Piket Aktif</h6>
-            <h3 id="statPiket">-</h3>
+          <div class="card p-3 bg-info text-white">
+            <h6>Total Alumni</h6>
+            <h3 id="statAlumni">0</h3>
           </div>
         </div>
       </div>
@@ -87,7 +89,7 @@
     <div id="tab-scan" class="content-tab" style="display:none;">
       <div class="card p-4">
         <h4 class="mb-3 text-center">Scan QR Code / Barcode Siswa</h4>
-        <p class="text-muted text-center mb-4">Arahkan kamera ke QR Code NISN siswa untuk mencatat kehadiran otomatis.</p>
+        <p class="text-muted text-center mb-4">Arahkan kamera ke QR Code NISN siswa aktif untuk mencatat kehadiran otomatis hari ini.</p>
         <div class="row">
           <div class="col-md-6 mx-auto">
             <div id="reader"></div>
@@ -97,11 +99,11 @@
       </div>
     </div>
 
-    <!-- TAB 3: DATA SISWA -->
+    <!-- TAB 3: DATA SISWA AKTIF -->
     <div id="tab-siswa" class="content-tab" style="display:none;">
       <div class="card p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h4>Daftar Siswa</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4>Daftar Siswa Aktif</h4>
           <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahSiswa">+ Tambah Siswa</button>
         </div>
         <div class="table-responsive">
@@ -112,7 +114,7 @@
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
                 <th>Nama Ortu</th>
-                <th>Aksi</th>
+                <th>Aksi / Keterangan Lulus</th>
               </tr>
             </thead>
             <tbody id="tabelSiswaBody">
@@ -123,15 +125,44 @@
       </div>
     </div>
 
-    <!-- TAB 4: REKAP -->
+    <!-- TAB 4: DATA ALUMNI -->
+    <div id="tab-alumni" class="content-tab" style="display:none;">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4>Data Alumni Permanen</h4>
+          <span class="badge bg-success">Siswa Lulus Tersimpan Aman</span>
+        </div>
+        <p class="text-muted small">Daftar siswa yang dinyatakan lulus otomatis masuk ke menu ini secara permanen dan terpisah dari data siswa aktif.</p>
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered align-middle">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Tanggal Lulus</th>
+                <th>NISN</th>
+                <th>Nama Siswa</th>
+                <th>Kelas Terakhir</th>
+                <th>Nama Ortu</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tabelAlumniBody">
+              <tr><td colspan="7" class="text-center">Memuat data alumni...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: KEHADIRAN HARI INI -->
     <div id="tab-rekap" class="content-tab" style="display:none;">
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <h4>Rekapitulasi Kehadiran Harian & Tanggal</h4>
+          <h4>Input & Ubah Kehadiran Hari Ini</h4>
           <div class="d-flex align-items-center gap-2">
             <label for="filterTanggal" class="form-label m-0 fw-bold">Tanggal:</label>
             <input type="date" id="filterTanggal" class="form-control form-control-sm" onchange="loadRekap()">
-            <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Download Rekap</button>
+            <button class="btn btn-success btn-sm" onclick="downloadRekapExcel()"><i class="fa-solid fa-file-excel me-1"></i> Rekap Akumulasi</button>
           </div>
         </div>
         <div class="table-responsive">
@@ -143,7 +174,7 @@
                 <th>NISN</th>
                 <th>Nama Siswa</th>
                 <th>Kelas</th>
-                <th>Status (Hadir / Sakit / Izin / Alpha)</th>
+                <th>Status Kehadiran</th>
                 <th>Jam Masuk</th>
                 <th>Guru Piket</th>
               </tr>
@@ -156,7 +187,41 @@
       </div>
     </div>
 
-    <!-- TAB 5: USERS / PENGELOLA -->
+    <!-- TAB 6: ARsip & FILTER ABSENSI -->
+    <div id="tab-arsip" class="content-tab" style="display:none;">
+      <div class="card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h4>Arsip & Riwayat Absensi Permanen</h4>
+          <div class="d-flex align-items-center gap-2">
+            <label for="filterArsipTanggal" class="form-label m-0 fw-bold">Filter Tanggal:</label>
+            <input type="date" id="filterArsipTanggal" class="form-control form-control-sm" onchange="loadArsip()">
+            <button class="btn btn-outline-secondary btn-sm" onclick="resetFilterArsip()">Semua Riwayat</button>
+          </div>
+        </div>
+        <p class="text-muted small">Semua data absensi tersimpan otomatis dan permanen menurut tanggal. Sistem memulai hari baru dengan reset harian tanpa menghapus arsip lampau.</p>
+        <div class="table-responsive">
+          <table class="table table-striped table-bordered align-middle">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Tanggal Arsip</th>
+                <th>NISN</th>
+                <th>Nama Siswa</th>
+                <th>Kelas</th>
+                <th>Status</th>
+                <th>Jam Masuk</th>
+                <th>Guru Piket</th>
+              </tr>
+            </thead>
+            <tbody id="tabelArsipBody">
+              <tr><td colspan="8" class="text-center">Memuat data arsip...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: USERS -->
     <div id="tab-users" class="content-tab" style="display:none;">
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -181,7 +246,7 @@
       </div>
     </div>
 
-    <!-- TAB 6: SEKOLAH -->
+    <!-- TAB 8: SEKOLAH -->
     <div id="tab-sekolah" class="content-tab" style="display:none;">
       <div class="card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -311,7 +376,6 @@
     }
 
     document.getElementById('userNameDisplay').innerText = currentUser.nama;
-    document.getElementById('statPiket').innerText = currentUser.nama;
     document.getElementById('sekolahInfoLabel').innerText = currentUser.nama_sekolah || 'Pusat / Semua Sekolah';
 
     if (currentUser.role === 'ADMIN') {
@@ -334,7 +398,9 @@
       if(event && event.currentTarget) event.currentTarget.classList.add('active');
 
       if (tabId === 'siswa') loadSiswa();
+      if (tabId === 'alumni') loadAlumni();
       if (tabId === 'rekap') loadRekap();
+      if (tabId === 'arsip') loadArsip();
       if (tabId === 'users') loadUsers();
       if (tabId === 'sekolah') loadSekolah();
       if (tabId === 'scan') {
@@ -360,6 +426,11 @@
         .then(res => res.json())
         .then(data => {
           document.getElementById('statSiswa').innerText = data.length;
+        });
+      fetch(`/api/alumni/${sekolahId}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('statAlumni').innerText = data.length;
         });
     }
     loadDashboardStats();
@@ -443,7 +514,7 @@
           let tbody = document.getElementById('tabelSiswaBody');
           tbody.innerHTML = '';
           if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data siswa.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada data siswa aktif.</td></tr>';
             return;
           }
           data.forEach(s => {
@@ -453,11 +524,64 @@
                 <td>${s.nama_siswa}</td>
                 <td>${s.kelas}</td>
                 <td>${s.nama_ortu || '-'}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button></td>
+                <td>
+                  <button class="btn btn-success btn-sm me-1" onclick="luluskanSiswa(${s.id}, '${s.nama_siswa}')"><i class="fa-solid fa-graduation-cap me-1"></i> Nyatakan Lulus</button>
+                  <button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button>
+                </td>
               </tr>
             `;
           });
         });
+    }
+
+    function luluskanSiswa(id, nama) {
+      if(confirm(`Apakah Anda yakin ingin menyatakan ${nama} LULUS?\nSiswa akan dipindahkan secara permanen ke Data Alumni dan dihapus dari daftar siswa aktif.`)) {
+        fetch(`/api/luluskan-siswa/${id}`, { method: 'POST' })
+          .then(res => res.json())
+          .then(data => {
+            if(data.success) {
+              alert(data.message);
+              loadSiswa();
+              loadDashboardStats();
+            } else {
+              alert('Gagal meluluskan siswa: ' + data.error);
+            }
+          });
+      }
+    }
+
+    function loadAlumni() {
+      const sekolahId = currentUser.sekolah_id || 0;
+      fetch(`/api/alumni/${sekolahId}`)
+        .then(res => res.json())
+        .then(data => {
+          let tbody = document.getElementById('tabelAlumniBody');
+          tbody.innerHTML = '';
+          if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada data alumni.</td></tr>';
+            return;
+          }
+          data.forEach((a, idx) => {
+            let formattedDate = a.tanggal_lulus ? a.tanggal_lulus.substring(0, 10) : '-';
+            tbody.innerHTML += `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${formattedDate}</td>
+                <td>${a.nisn}</td>
+                <td>${a.nama_siswa}</td>
+                <td>${a.kelas_terakhir}</td>
+                <td>${a.nama_ortu || '-'}</td>
+                <td><button class="btn btn-outline-danger btn-sm" onclick="hapusAlumni(${a.id})">Hapus dari Alumni</button></td>
+              </tr>
+            `;
+          });
+        });
+    }
+
+    function hapusAlumni(id) {
+      if(confirm('Yakin ingin menghapus data alumni ini dari sistem?')) {
+        fetch(`/api/alumni/${id}`, { method: 'DELETE' }).then(() => { loadAlumni(); loadDashboardStats(); });
+      }
     }
 
     document.getElementById('formTambahSiswa').addEventListener('submit', function(e) {
@@ -502,7 +626,7 @@
           let tbody = document.getElementById('tabelRekapBody');
           tbody.innerHTML = '';
           if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data siswa.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Belum ada data siswa aktif.</td></tr>';
             return;
           }
           data.forEach((r, idx) => {
@@ -520,7 +644,7 @@
                     <option value="Hadir" ${r.status === 'Hadir' ? 'selected' : ''}>Hadir</option>
                     <option value="Sakit" ${r.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
                     <option value="Izin" ${r.status === 'Izin' ? 'selected' : ''}>Izin</option>
-                    <option value="Tanpa Keterangan" ${r.status === 'Tanpa Keterangan' ? 'selected' : ''}>Tanpa Keterangan (Alpha)</option>
+                    <option value="Tanpa Keterangan" ${r.status === 'Tanpa Keterangan' || r.status === 'Alpha' ? 'selected' : ''}>Tanpa Keterangan (Alpha)</option>
                   </select>
                 </td>
                 <td>${r.jam_masuk || '-'}</td>
@@ -529,6 +653,52 @@
             `;
           });
         });
+    }
+
+    function loadArsip() {
+      const sekolahId = currentUser.sekolah_id || 0;
+      const tanggalFilter = document.getElementById('filterArsipTanggal').value;
+      let url = `/api/arsip-absensi/${sekolahId}`;
+      if (tanggalFilter) {
+        url += `?tanggal=${tanggalFilter}`;
+      }
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          let tbody = document.getElementById('tabelArsipBody');
+          tbody.innerHTML = '';
+          if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center">Tidak ada riwayat arsip pada tanggal tersebut.</td></tr>';
+            return;
+          }
+          data.forEach((r, idx) => {
+            let formattedDate = r.tanggal ? r.tanggal.substring(0, 10) : '-';
+            let badgeClass = 'bg-secondary';
+            if (r.status === 'Hadir') badgeClass = 'bg-primary';
+            else if (r.status === 'Sakit') badgeClass = 'bg-success';
+            else if (r.status === 'Izin') badgeClass = 'bg-warning text-dark';
+            else if (r.status === 'Tanpa Keterangan' || r.status === 'Alpha') badgeClass = 'bg-danger';
+
+            tbody.innerHTML += `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${formattedDate}</td>
+                <td>${r.nisn}</td>
+                <td>${r.nama_siswa}</td>
+                <td>${r.kelas}</td>
+                <td><span class="badge ${badgeClass}">${r.status}</span></td>
+                <td>${r.jam_masuk || '-'}</td>
+                <td>${r.nama_piket || '-'}</td>
+              </tr>
+            `;
+          });
+        });
+    }
+
+    function resetFilterArsip() {
+      document.getElementById('filterArsipTanggal').value = '';
+      loadArsip();
     }
 
     function ubahStatusAbsensi(siswaId, statusBaru) {
@@ -663,6 +833,9 @@
           let tbody = document.getElementById('tabelSekolahBody');
           tbody.innerHTML = '';
           data.forEach(s => {
+            tbody.innerHTML += `
+              Logs...
+            `;
             tbody.innerHTML += `
               <tr>
                 <td>${s.nama_sekolah}</td>
