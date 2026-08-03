@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sistem Absensi Sekolah</title>
-    <!-- Tailwind CSS untuk styling cepat dan modern -->
+    <title>Dashboard - Sistem Absensi Terpusat Sekolah</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library Kamera Scanner QR Code -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal tracking-normal">
 
@@ -14,14 +16,14 @@
         <div class="w-64 bg-indigo-900 text-white flex flex-col justify-between hidden md:flex">
             <div>
                 <div class="p-5 text-2xl font-bold tracking-wider border-b border-indigo-800">
-                    SI-Absensi
+                    SI-Absensi Multi
                 </div>
                 <nav class="mt-5 px-4 space-y-2">
                     <a href="#" onclick="switchTab('sekolah')" id="nav-sekolah" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">🏫 Manajemen Sekolah</a>
-                    <a href="#" onclick="switchTab('siswa')" id="nav-siswa" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👨‍🎓 Data Siswa</a>
-                    <a href="#" onclick="switchTab('absensi')" id="nav-absensi" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📋 Absensi & Rekap</a>
-                    <a href="#" onclick="switchTab('scan')" id="nav-scan" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📷 Scan QR / Barcode</a>
-                    <a href="#" onclick="switchTab('users')" id="nav-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👤 Manajemen User</a>
+                    <a href="#" onclick="switchTab('siswa')" id="nav-siswa" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👨‍🎓 Data Siswa Sekolah</a>
+                    <a href="#" onclick="switchTab('absensi')" id="nav-absensi" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📋 Rekap Absensi</a>
+                    <a href="#" onclick="switchTab('scan')" id="nav-scan" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">📷 Scan Kamera & QR</a>
+                    <a href="#" onclick="switchTab('users')" id="nav-users" class="block py-2.5 px-4 rounded transition duration-200 hover:bg-indigo-800">👤 Tim / Pengguna</a>
                 </nav>
             </div>
             <div class="p-4 border-t border-indigo-800">
@@ -49,26 +51,44 @@
                 <!-- TAB SEKOLAH -->
                 <div id="tab-sekolah" class="tab-content space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Tambah Sekolah Baru</h2>
+                        <h2 class="text-lg font-bold text-gray-700 mb-4">Tambah Sekolah & Pembagian Pekerjaan Operator</h2>
                         <form id="form-tambah-sekolah" onsubmit="tambahSekolah(event)" class="space-y-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Sekolah</label>
-                                <input type="text" id="nama_sekolah" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Sekolah</label>
+                                    <input type="text" id="nama_sekolah" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">URL Logo / Base64</label>
+                                    <input type="text" id="logo" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="https://...">
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Alamat</label>
-                                <textarea id="alamat" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Alamat Sekolah</label>
+                                <textarea id="alamat" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
                             </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">URL Logo / Base64</label>
-                                <input type="text" id="logo" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="https://...">
+                            <hr class="my-4">
+                            <h3 class="font-semibold text-gray-600">Akun Petugas / Operator Khusus Sekolah Ini</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Username Login</label>
+                                    <input type="text" id="admin_username" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="contoh: sman1_piket">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Password Login</label>
+                                    <input type="password" id="admin_password" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Petugas</label>
+                                    <input type="text" id="admin_nama" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Nama Penanggung Jawab">
+                                </div>
                             </div>
-                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none">Simpan Sekolah</button>
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none mt-2">Simpan Sekolah & Tugas</button>
                         </form>
                     </div>
 
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Daftar Sekolah Terdaftar</h2>
+                        <h2 class="text-lg font-bold text-gray-700 mb-4">Daftar Wilayah Pekerjaan Sekolah</h2>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -87,7 +107,10 @@
                 <!-- TAB SISWA -->
                 <div id="tab-siswa" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Daftar Siswa Aktif</h2>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-gray-700">Manajemen Siswa Berdasarkan Sekolah</h2>
+                            <button onclick="bukaModalTambahSiswa()" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2 px-4 rounded">＋ Tambah Siswa Baru</button>
+                        </div>
                         <div class="flex gap-4 mb-4">
                             <input type="text" id="search-siswa" placeholder="Cari nama / NISN..." class="px-3 py-2 border rounded-lg w-1/3" oninput="loadSiswa()">
                         </div>
@@ -98,7 +121,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NISN</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Siswa</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Ortu</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No WA Ortu</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                                     </tr>
                                 </thead>
@@ -111,7 +134,7 @@
                 <!-- TAB ABSENSI -->
                 <div id="tab-absensi" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Rekap Absensi Harian</h2>
+                        <h2 class="text-lg font-bold text-gray-700 mb-4">Rekap Absensi Pekerjaan Sekolah</h2>
                         <div class="flex gap-4 mb-4">
                             <input type="date" id="filter-tanggal" class="px-3 py-2 border rounded-lg" onchange="loadRekap()">
                         </div>
@@ -123,7 +146,7 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kelas</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jam Masuk</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Piket</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Petugas Piket</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabel-rekap-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -132,34 +155,34 @@
                     </div>
                 </div>
 
-                <!-- TAB SCAN QR CODE -->
+                <!-- TAB SCAN KAMERA -->
                 <div id="tab-scan" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow max-w-xl mx-auto text-center">
-                        <h2 class="text-xl font-bold text-gray-700 mb-2">Scan QR Code / Masukkan NISN</h2>
-                        <p class="text-sm text-gray-500 mb-6">Arahkan scanner atau ketik NISN siswa untuk melakukan absensi otomatis.</p>
+                        <h2 class="text-xl font-bold text-gray-700 mb-2">Scan Kamera QR Code Kehadiran</h2>
+                        <p class="text-sm text-gray-500 mb-4">Pindai kartu pelajar siswa untuk mengirim rekap real-time.</p>
                         
+                        <div id="reader" class="w-full mb-4 rounded-lg overflow-hidden border"></div>
+
                         <div class="flex gap-2 mb-4">
-                            <input type="text" id="input-nisn-scan" placeholder="Scan atau Ketik NISN Siswa..." class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg">
-                            <button onclick="prosesScan()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-bold transition">Proses</button>
+                            <input type="text" id="input-nisn-scan" placeholder="Ketik NISN..." class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button onclick="prosesScanManual()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition">Proses</button>
                         </div>
 
-                        <div id="scan-result" class="mt-6 p-4 rounded-lg hidden">
-                            <!-- Hasil scan akan muncul di sini -->
-                        </div>
+                        <div id="scan-result" class="mt-4 p-4 rounded-lg hidden"></div>
                     </div>
                 </div>
 
                 <!-- TAB USERS -->
                 <div id="tab-users" class="tab-content hidden space-y-6">
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <h2 class="text-lg font-bold text-gray-700 mb-4">Manajemen Pengguna</h2>
+                        <h2 class="text-lg font-bold text-gray-700 mb-4">Tim & Pembagian Pengguna Sekolah</h2>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Lengkap</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peran / Role</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabel-users-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -172,8 +195,39 @@
         </div>
     </div>
 
+    <!-- MODAL TAMBAH SISWA -->
+    <div id="modal-siswa" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md space-y-4">
+            <h3 class="text-lg font-bold text-gray-800">Tambah Data Siswa</h3>
+            <form id="form-tambah-siswa" onsubmit="simpanSiswa(event)" class="space-y-3">
+                <input type="hidden" id="siswa_sekolah_id">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">NISN / QR Code</label>
+                    <input type="text" id="nisn" required class="w-full px-3 py-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Nama Siswa</label>
+                    <input type="text" id="nama_siswa" required class="w-full px-3 py-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Kelas</label>
+                    <input type="text" id="kelas" required class="w-full px-3 py-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">No WhatsApp Ortu (Pisahkan koma jika banyak)</label>
+                    <input type="text" id="wa_ortu" placeholder="08123456789, 08987654321" required class="w-full px-3 py-2 border rounded">
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="tutupModalSiswa()" class="bg-gray-400 text-white px-4 py-2 rounded">Batal</button>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
+        let html5QrCode = null;
 
         document.addEventListener("DOMContentLoaded", () => {
             const userStr = localStorage.getItem('user');
@@ -193,19 +247,8 @@
             }
 
             switchTab('sekolah');
-
-            // Event listener agar tekan Enter langsung scan
-            const inputNisn = document.getElementById('input-nisn-scan');
-            if(inputNisn) {
-                inputNisn.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') {
-                        prosesScan();
-                    }
-                });
-            }
         });
 
-        // FUNGSI MEMBUAT SUARA BEEP (Tanpa file eksternal)
         function playBeep(success = true) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -213,18 +256,16 @@
                 const gainNode = audioCtx.createGain();
 
                 oscillator.type = 'sine';
-                // Jika sukses suara tinggi (800Hz), jika gagal suara rendah (300Hz)
                 oscillator.frequency.setValueAtTime(success ? 800 : 300, audioCtx.currentTime); 
-
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
                 oscillator.start();
-                oscillator.stop(audioCtx.currentTime + (success ? 0.15 : 0.4)); // Durasi bunyi
+                oscillator.stop(audioCtx.currentTime + (success ? 0.15 : 0.4));
             } catch (e) {
-                console.warn("Audio Context tidak didukung atau diblokir browser:", e);
+                console.warn("Audio Context diblokir browser:", e);
             }
         }
 
@@ -232,23 +273,43 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
+            if (html5QrCode && tabName !== 'scan') {
+                html5QrCode.stop().catch(() => {});
+            }
+
             if (tabName === 'sekolah') loadSekolah();
             if (tabName === 'siswa') loadSiswa();
             if (tabName === 'absensi') loadRekap();
-            if (tabName === 'scan') {
-                setTimeout(() => document.getElementById('input-nisn-scan').focus(), 100);
-            }
+            if (tabName === 'scan') initKameraScanner();
             if (tabName === 'users') loadUsers();
         }
 
-        // Fungsi Proses Scan QR Code / NISN
-        async function prosesScan() {
-            const nisnInput = document.getElementById('input-nisn-scan');
-            const nisn = nisnInput.value.trim();
+        function initKameraScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (errorMessage) => {}).catch(err => {
+                console.error("Gagal memulai kamera:", err);
+            });
+        }
+
+        async function onScanSuccess(decodedText) {
+            if(html5QrCode) {
+                await html5QrCode.stop().catch(() => {});
+            }
+            await kirimAbsenServer(decodedText.trim());
+            setTimeout(() => initKameraScanner(), 3000);
+        }
+
+        function prosesScanManual() {
+            const nisn = document.getElementById('input-nisn-scan').value.trim();
+            if (nisn) kirimAbsenServer(nisn);
+        }
+
+        async function kirimAbsenServer(nisn) {
             const resultDiv = document.getElementById('scan-result');
-
-            if (!nisn) return;
-
             try {
                 const res = await fetch('/api/absensi-barcode-nisn', {
                     method: 'POST',
@@ -259,28 +320,26 @@
 
                 resultDiv.classList.remove('hidden');
                 if (result.success) {
-                    playBeep(true); // Bunyi Beep Sukses
-                    resultDiv.className = "mt-6 p-4 rounded-lg bg-green-100 text-green-800 border border-green-300";
+                    playBeep(true);
+                    resultDiv.className = "mt-4 p-4 rounded-lg bg-green-100 text-green-800 border border-green-300";
                     resultDiv.innerHTML = `
-                        <p class="font-bold text-lg">✅ Absensi Berhasil!</p>
+                        <p class="font-bold text-lg">✅ Absensi Berhasil & WA Terkirim!</p>
                         <p>Nama: <b>${result.nama_siswa}</b></p>
                         <p>Kelas: <b>${result.kelas}</b></p>
                         <p>Jam Masuk: <b>${result.jam}</b></p>
                     `;
                 } else {
-                    playBeep(false); // Bunyi Beep Gagal
-                    resultDiv.className = "mt-6 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
+                    playBeep(false);
+                    resultDiv.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
                     resultDiv.innerHTML = `<p class="font-bold">❌ Gagal: ${result.error}</p>`;
                 }
             } catch (err) {
                 playBeep(false);
                 resultDiv.classList.remove('hidden');
-                resultDiv.className = "mt-6 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
-                resultDiv.innerHTML = `<p class="font-bold">❌ Terjadi kesalahan koneksi server.</p>`;
+                resultDiv.className = "mt-4 p-4 rounded-lg bg-red-100 text-red-800 border border-red-300";
+                resultDiv.innerHTML = `<p class="font-bold">❌ Terjadi kesalahan jaringan.</p>`;
             }
-
-            nisnInput.value = '';
-            nisnInput.focus();
+            document.getElementById('input-nisn-scan').value = '';
         }
 
         async function loadSekolah() {
@@ -292,7 +351,7 @@
                 data.forEach(s => {
                     tbody.innerHTML += `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nama_sekolah}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${s.nama_sekolah}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.alamat || '-'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="hapusSekolah(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button>
@@ -308,7 +367,10 @@
             const payload = {
                 nama_sekolah: document.getElementById('nama_sekolah').value,
                 alamat: document.getElementById('alamat').value,
-                logo: document.getElementById('logo').value
+                logo: document.getElementById('logo').value,
+                admin_username: document.getElementById('admin_username').value,
+                admin_password: document.getElementById('admin_password').value,
+                admin_nama: document.getElementById('admin_nama').value
             };
             try {
                 const res = await fetch('/api/sekolah', {
@@ -318,7 +380,7 @@
                 });
                 const result = await res.json();
                 if (result.success) {
-                    alert('Sekolah berhasil ditambahkan!');
+                    alert('Sekolah dan tugas operator berhasil diatur!');
                     document.getElementById('form-tambah-sekolah').reset();
                     loadSekolah();
                 } else { alert('Gagal: ' + result.error); }
@@ -326,7 +388,7 @@
         }
 
         async function hapusSekolah(id) {
-            if (!confirm('Yakin ingin menghapus sekolah ini?')) return;
+            if (!confirm('Yakin ingin menghapus sekolah dan pembagian pekerjaan terkait?')) return;
             try {
                 const res = await fetch(`/api/sekolah/${id}`, { method: 'DELETE' });
                 const result = await res.json();
@@ -343,12 +405,13 @@
                 const tbody = document.getElementById('tabel-siswa-body');
                 tbody.innerHTML = '';
                 data.forEach(s => {
+                    const waList = Array.isArray(s.wa_ortu) ? s.wa_ortu.join(', ') : (s.wa_ortu || '-');
                     tbody.innerHTML += `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nisn}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.nama_siswa}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.kelas}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.nama_ortu || '-'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${waList}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button onclick="hapusSiswa(${s.id})" class="text-red-600 hover:text-red-900">Hapus</button>
                             </td>
@@ -358,8 +421,50 @@
             } catch (err) { console.error(err); }
         }
 
+        function bukaModalTambahSiswa() {
+            if (!currentUser.sekolah_id) {
+                alert('Akun Anda tidak terikat pada sekolah tertentu, pilih atau tambahkan sekolah terlebih dahulu.');
+                return;
+            }
+            document.getElementById('modal-siswa').classList.remove('hidden');
+        }
+
+        function tutupModalSiswa() {
+            document.getElementById('modal-siswa').classList.add('hidden');
+            document.getElementById('form-tambah-siswa').reset();
+        }
+
+        async function simpanSiswa(event) {
+            event.preventDefault();
+            const rawWa = document.getElementById('wa_ortu').value;
+            const waArray = rawWa.split(',').map(item => item.trim());
+
+            const payload = {
+                sekolah_id: currentUser.sekolah_id,
+                nisn: document.getElementById('nisn').value,
+                nama_siswa: document.getElementById('nama_siswa').value,
+                kelas: document.getElementById('kelas').value,
+                nama_ortu: 'Wali Murid',
+                wa_ortu: waArray
+            };
+
+            try {
+                const res = await fetch('/api/siswa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Siswa berhasil disimpan!');
+                    tutupModalSiswa();
+                    loadSiswa();
+                } else { alert('Gagal: ' + result.error); }
+            } catch (err) { alert('Kesalahan jaringan.'); }
+        }
+
         async function hapusSiswa(id) {
-            if (!confirm('Yakin ingin menghapus data siswa ini?')) return;
+            if (!confirm('Yakin ingin menghapus siswa ini?')) return;
             try {
                 const res = await fetch(`/api/siswa/${id}`, { method: 'DELETE' });
                 const result = await res.json();
